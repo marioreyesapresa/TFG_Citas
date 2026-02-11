@@ -1,5 +1,21 @@
-env/
-*.pyc
-__pycache__/
+# .gitignore
+
+# 1. Base de datos (¡Nunca se sube! Cada programador tiene la suya)
 db.sqlite3
+
+# 2. Archivos compilados de Python
+__pycache__/
+*.pyc
+*.pyo
+
+# 3. Entorno virtual (Tu carpeta venv o env)
+venv/
+env/
+.env
+
+# 4. Archivos de sistema
 .DS_Store
+Thumbs.db
+
+# 5. Archivos de medios (si subieran fotos los usuarios)
+media/

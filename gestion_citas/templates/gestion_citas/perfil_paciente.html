@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Mis Citas</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background-color: #f4f7f6; padding: 40px; }
+        .container { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); max-width: 800px; margin: auto; }
+        
+        h2 { color: #2c3e50; border-bottom: 2px solid #eee; padding-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+        
+        .btn-nueva { background: #3498db; color: white; text-decoration: none; padding: 10px 20px; border-radius: 5px; font-size: 0.6em; vertical-align: middle; }
+        .btn-nueva:hover { background: #2980b9; }
+
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th { text-align: left; padding: 12px; background: #f8f9fa; color: #7f8c8d; }
+        td { padding: 12px; border-bottom: 1px solid #eee; vertical-align: middle; }
+        
+        /* Badges de estado */
+        .badge { padding: 5px 10px; border-radius: 15px; font-size: 0.85em; font-weight: bold; }
+        .status-P { background: #fff3cd; color: #856404; } /* Pendiente - Amarillo */
+        .status-C { background: #d4edda; color: #155724; } /* Confirmada - Verde */
+        .status-X { background: #f8d7da; color: #721c24; } /* Cancelada - Rojo */
+        .status-R { background: #e2e3e5; color: #383d41; } /* Reasignación - Gris */
+
+        .btn-cancelar { 
+            background: #e74c3c; color: white; border: none; padding: 8px 12px; 
+            border-radius: 4px; cursor: pointer; font-size: 0.9em; 
+        }
+        .btn-cancelar:hover { background: #c0392b; }
+        
+        .empty-msg { text-align: center; color: #95a5a6; padding: 40px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>
+        📅 Mis Citas Médicas
+        <a href="{% url 'solicitar_cita' %}" class="btn-nueva">+ Nueva Cita</a>
+    </h2>
+
+    {% if citas %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Fecha / Hora</th>
+                    <th>Médico</th>
+                    <th>Estado</th>
+                    <th>Acción</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for cita in citas %}
+                <tr style="{% if cita.estado == 'X' %}opacity: 0.6;{% endif %}">
+                    <td>
+                        <strong>{{ cita.fecha|date:"d/m/Y" }}</strong><br>
+                        <small>{{ cita.hora_inicio|time:"H:i" }}</small>
+                    </td>
+                    <td>
+                        {{ cita.medico.user.last_name }}<br>
+                        <small style="color:#7f8c8d">{{ cita.medico.especialidad }}</small>
+                    </td>
+                    <td>
+                        <span class="badge status-{{ cita.estado }}">
+                            {{ cita.get_estado_display }}
+                        </span>
+                    </td>
+                    <td>
+                        {% if cita.estado != 'X' and cita.estado != 'C' %} 
+                            <a href="{% url 'cancelar_cita' cita.id %}" 
+                               class="btn-cancelar"
+                               onclick="return confirm('¿Seguro que quieres cancelar esta cita?');">
+                                Cancelar
+                            </a>
+                        {% elif cita.estado == 'C' %}
+                            <span style="color: green;">✔ Confirmada</span>
+                        {% else %}
+                            <span>--</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <div class="empty-msg">
+            <h3>No tienes citas registradas</h3>
+            <p>Utiliza el botón de arriba para solicitar tu primera cita.</p>
+        </div>
+    {% endif %}
+</div>
+
+</body>
+</html>

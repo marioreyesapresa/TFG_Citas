@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cita Confirmada - Hospital TFG</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .success-card {
+            background: white;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            text-align: center;
+            max-width: 450px;
+            width: 90%;
+        }
+        .icon {
+            font-size: 4em;
+            color: #2ecc71;
+            margin-bottom: 20px;
+        }
+        h1 { color: #2c3e50; margin-bottom: 10px; }
+        p { color: #7f8c8d; line-height: 1.6; }
+        
+        .details-box {
+            background: #f9f9f9;
+            border: 1px solid #eee;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 25px 0;
+            text-align: left;
+        }
+        .details-box div {
+            margin-bottom: 10px;
+            color: #34495e;
+        }
+        .details-box strong { color: #2c3e50; }
+
+        .btn-home {
+            display: inline-block;
+            padding: 12px 25px;
+            background-color: #3498db;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+            transition: background 0.3s;
+        }
+        .btn-home:hover { background-color: #2980b9; }
+    </style>
+</head>
+<body>
+
+    <div class="success-card">
+        <div class="icon">✅</div>
+        <h1>¡Cita Confirmada!</h1>
+        <p>Tu solicitud ha sido procesada correctamente. Se ha enviado una notificación al equipo médico.</p>
+
+        <div class="details-box">
+            <div><strong>Médico:</strong> {{ cita.medico }}</div>
+            <div><strong>Especialidad:</strong> {{ cita.medico.especialidad }}</div>
+            <div><strong>Fecha:</strong> {{ cita.fecha|date:"d/m/Y" }}</div>
+            <div><strong>Hora:</strong> {{ cita.hora_inicio|time:"H:i" }}</div>
+            <div><strong>Centro:</strong> {{ cita.medico.centro }}</div>
+        </div>
+
+        <a href="{% url 'dashboard' %}" class="btn-home">Volver al Inicio</a>
+    </div>
+
+</body>
+</html>

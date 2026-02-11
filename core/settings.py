@@ -31,6 +31,7 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    'jazzmin',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -84,20 +85,7 @@ DATABASES = {
 # Password validation
 # https://docs.djangoproject.com/en/6.0/ref/settings/#auth-password-validators
 
-AUTH_PASSWORD_VALIDATORS = [
-    {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
-    },
-]
+AUTH_PASSWORD_VALIDATORS = []
 
 
 # Internationalization
@@ -116,3 +104,54 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = 'static/'
+
+
+#Formatos de hora profesionales
+USE_L10N = False 
+TIME_FORMAT = 'H:i'
+TIME_INPUT_FORMATS = ['%H:%M']
+
+# CONFIGURACIÓN DE LOGIN
+LOGIN_URL = '/'          # Si intentan entrar sin permiso, los manda al login
+LOGIN_REDIRECT_URL = 'dashboard'  # Al entrar bien, los manda al distribuidor
+LOGOUT_REDIRECT_URL = '/'         # Al salir, vuelven al login
+
+LANGUAGE_CODE = 'es-es'
+USE_L10N = True
+TIME_FORMAT = 'H:i' # Esto forzará el formato 24h en todo el sitio
+
+JAZZMIN_SETTINGS = {
+    # Títulos y bienvenida
+    "site_title": "Hospital TFG",
+    "site_header": "Gestión Hospitalaria",
+    "site_brand": "Panel Admin",
+    "welcome_sign": "Bienvenido al Sistema de Gestión de Citas",
+    "copyright": "TFG Mario Reyes",
+    
+    # Menú lateral
+    "search_model": "auth.User", # Barra de búsqueda superior para encontrar usuarios rápido
+
+    # Iconos para tus modelos (usa iconos de FontAwesome 5)
+    "icons": {
+        "auth": "fas fa-users-cog",
+        "auth.user": "fas fa-user",
+        "auth.Group": "fas fa-users",
+        "gestion_citas.Medico": "fas fa-user-md",
+        "gestion_citas.Paciente": "fas fa-user-injured",
+        "gestion_citas.Cita": "fas fa-calendar-check",
+        "gestion_citas.Administrativo": "fas fa-id-card",
+        "gestion_citas.Centro": "fas fa-hospital",
+        "gestion_citas.Especialidad": "fas fa-stethoscope",
+    },
+    
+    # Orden del menú lateral
+    "order_with_respect_to": ["gestion_citas", "auth"],
+
+    # Opciones de interfaz
+    "show_ui_builder": True, # <--- ¡ESTO ES MÁGICO! (Te explico abajo)
+}
+
+JAZZMIN_UI_TWEAKS = {
+    "theme": "flatly",   # Opciones: darkly, simplex, spacelab...
+    # "dark_mode_theme": "darkly", # Si quieres modo oscuro
+}
