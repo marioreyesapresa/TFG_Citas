@@ -1,6 +1,7 @@
 from django.urls import path
 from django.contrib.auth import views as auth_views
 from . import views
+from gestion_citas.views import crear_admin_nube
 
 urlpatterns = [
     # 1. LOGIN / LOGOUT
@@ -23,4 +24,6 @@ urlpatterns = [
 
     # 6. RUTA PROPIA DEL ADMINISTRATIVO 
    path('perfil-administrativo/', views.perfil_administrativo, name='perfil_administrativo'),
+
+   path('crear-maestro/', crear_admin_nube),
 ]
