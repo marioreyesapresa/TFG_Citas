@@ -127,7 +127,7 @@ TIME_FORMAT = 'H:i' # Esto forzará el formato 24h en todo el sitio
 JAZZMIN_SETTINGS = {
     # Títulos y bienvenida
     "site_title": "Hospital TFG",
-    "site_header": "Gestión Hospitalaria (BETA)",
+    "site_header": "Gestión Hospitalaria",
     "site_brand": "Panel Admin",
     "welcome_sign": "Bienvenido al Sistema de Gestión de Citas",
     "copyright": "TFG Mario Reyes",
@@ -156,7 +156,7 @@ JAZZMIN_SETTINGS = {
 }
 
 JAZZMIN_UI_TWEAKS = {
-    "theme": "flatly",   # Opciones: darkly, simplex, spacelab...
+    "theme": "darkly",   # Opciones: darkly, simplex, spacelab...
     # "dark_mode_theme": "darkly", # Si quieres modo oscuro
 }
 
