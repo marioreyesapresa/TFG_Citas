@@ -25,7 +25,10 @@ SECRET_KEY = 'django-insecure--0o*o#_p!l-d&a@ovw#x4352@fe!4gh%o^=$d!%j8=wptkj0fe
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = ['*', 'tfg-citas-791788503447.europe-west1.run.app']
+
+# Esta es la línea clave para quitar el error "Prohibido (403)"
+CSRF_TRUSTED_ORIGINS = ['https://tfg-citas-791788503447.europe-west1.run.app']
 
 
 # Application definition
