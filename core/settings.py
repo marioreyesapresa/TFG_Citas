@@ -43,6 +43,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -155,3 +156,11 @@ JAZZMIN_UI_TWEAKS = {
     "theme": "flatly",   # Opciones: darkly, simplex, spacelab...
     # "dark_mode_theme": "darkly", # Si quieres modo oscuro
 }
+
+import os
+
+# Carpeta donde Google Cloud recolectará todos los archivos estáticos
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
+# Configuración necesaria para que Django sirva archivos estáticos en la nube (WhiteNoise)
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
