@@ -205,13 +205,3 @@ def perfil_administrativo(request):
     }
     return render(request, 'gestion_citas/perfil_administrativo.html', context)
 
-from django.contrib.auth.models import User
-from django.http import HttpResponse
-
-def crear_admin_nube(request):
-    # Esto crea un usuario administrador directamente en la base de datos de la nube
-    if not User.objects.filter(username='mario_admin').exists():
-        User.objects.create_superuser('mario_admin', 'mario@tfg.com', 'TFG_clave_2026')
-        return HttpResponse("🚀 ¡Superusuario 'mario_admin' creado con éxito!")
-    else:
-        return HttpResponse("✅ El usuario ya existe.")
