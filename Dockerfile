@@ -25,4 +25,4 @@ COPY . /app/
 RUN python manage.py collectstatic --noinput
 
 # 8. Comando de arranque: Migrar DB y encender Gunicorn
-CMD sh -c "python manage.py migrate && gunicorn --bind 0.0.0.0:8080 gestion_citas.wsgi:application"
+CMD sh -c "python manage.py migrate && gunicorn --bind 0.0.0.0:8080 core.wsgi:application"
