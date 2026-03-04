@@ -17,7 +17,10 @@ urlpatterns = [
     path('solicitar-cita/', views.solicitar_cita, name='solicitar_cita'),
     path('perfil-paciente/', views.perfil_paciente, name='perfil_paciente'), 
     path('cancelar-cita/<int:cita_id>/', views.cancelar_cita, name='cancelar_cita'),
-
+    # Rutas para el Motor de Reasignación
+    path('aceptar-propuesta/<int:propuesta_id>/', views.aceptar_propuesta, name='aceptar_propuesta'),
+    path('rechazar-propuesta/<int:propuesta_id>/', views.rechazar_propuesta, name='rechazar_propuesta'),
+   
     # 5. UTILIDADES (AJAX)
     path('ajax/cargar-horas/', views.cargar_horas_libres, name='ajax_cargar_horas'),
 

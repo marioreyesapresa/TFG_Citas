@@ -1,13 +1,13 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
-from .models import Cita, Medico, Paciente, EstadoCita 
+# Importamos los modelos necesarios para el motor
+from .models import Cita, Medico, Paciente, EstadoCita, PropuestaReasignacion, EstadoPropuesta 
 from django.http import JsonResponse
 from django.core.exceptions import ValidationError 
 
-# --- CORRECCIÓN IMPORTANTE AQUÍ ---
-# Hemos añadido ', date' para que funcione el filtro de hoy
 from datetime import datetime, timedelta, date 
 from django.db.models import Q 
+from django.utils import timezone 
 
 # ---------------------------------------------------------
 # 1. EL CEREBRO: VISTA DE REDIRECCIÓN (Dashboard)
@@ -15,24 +15,14 @@ from django.db.models import Q
 @login_required
 def dashboard_redirect(request):
     user = request.user
-    
-    # CASO A: Eres el Superusuario (Técnico) -> Vas al Admin de Django
     if user.is_superuser:
         return redirect('/admin/') 
-    
-    # CASO B: Eres un Administrativo (Recepcionista) -> Vas al Perfil Administrativo
     elif hasattr(user, 'administrativo'):
         return redirect('perfil_administrativo')
-    
-    # CASO C: Eres Médico
     elif hasattr(user, 'medico'):
         return redirect('perfil_medico')
-    
-    # CASO D: Eres Paciente
     elif hasattr(user, 'paciente'):
         return redirect('perfil_paciente')
-    
-    # Error
     else:
         return render(request, 'gestion_citas/error_acceso.html', {
             'mensaje': "Tu usuario no tiene un rol asignado."
@@ -56,32 +46,71 @@ def perfil_medico(request):
         })
 
 # ---------------------------------------------------------
-# 3. VISTA PACIENTE: PERFIL (HISTORIAL Y GESTIÓN)
+# 3. VISTA PACIENTE: PERFIL (HISTORIAL Y REASIGNACIÓN)
 # ---------------------------------------------------------
 @login_required
 def perfil_paciente(request):
     if not hasattr(request.user, 'paciente'):
         return redirect('dashboard')
     
+    paciente = request.user.paciente
     citas = Cita.objects.filter(
-        paciente=request.user.paciente
+        paciente=paciente
     ).order_by('-fecha', '-hora_inicio')
 
-    return render(request, 'gestion_citas/perfil_paciente.html', {'citas': citas})
+    # --- LÓGICA DEL MOTOR DE REASIGNACIÓN (R8) ---
+    ahora = timezone.now()
+    # 1. Caducamos las propuestas que han superado el tiempo límite
+    PropuestaReasignacion.objects.filter(
+        estado=EstadoPropuesta.PENDIENTE,
+        fecha_limite__lt=ahora
+    ).update(estado=EstadoPropuesta.EXPIRADA)
+
+    # 2. Buscamos si hay una propuesta pendiente para este paciente
+    propuesta_activa = PropuestaReasignacion.objects.filter(
+        cita_original__paciente=paciente,
+        estado=EstadoPropuesta.PENDIENTE,
+        fecha_limite__gt=ahora
+    ).first()
+
+    return render(request, 'gestion_citas/perfil_paciente.html', {
+        'citas': citas,
+        'propuesta': propuesta_activa
+    })
 
 @login_required
 def cancelar_cita(request, cita_id):
-    # Seguridad: Solo cancela si la cita es del usuario logueado
     cita = get_object_or_404(Cita, id=cita_id, paciente=request.user.paciente)
-    
     if cita.estado != EstadoCita.CANCELADA:
         cita.estado = EstadoCita.CANCELADA
-        cita.save()
-    
+        cita.save() # Al guardar, el modelo disparará el algoritmo
     return redirect('perfil_paciente')
 
 # ---------------------------------------------------------
-# 4. VISTA PACIENTE: SOLICITAR CITA
+# 4. ACCIONES DEL MOTOR (Aceptar / Rechazar)
+# ---------------------------------------------------------
+@login_required
+def aceptar_propuesta(request, propuesta_id):
+    propuesta = get_object_or_404(PropuestaReasignacion, id=propuesta_id, cita_original__paciente=request.user.paciente)
+    if propuesta.estado == EstadoPropuesta.PENDIENTE and propuesta.fecha_limite > timezone.now():
+        cita = propuesta.cita_original
+        cita.fecha = propuesta.fecha_oferta
+        cita.hora_inicio = propuesta.hora_oferta
+        cita.save() 
+        propuesta.estado = EstadoPropuesta.ACEPTADA
+        propuesta.save()
+    return redirect('perfil_paciente')
+
+@login_required
+def rechazar_propuesta(request, propuesta_id):
+    propuesta = get_object_or_404(PropuestaReasignacion, id=propuesta_id, cita_original__paciente=request.user.paciente)
+    if propuesta.estado == EstadoPropuesta.PENDIENTE:
+        propuesta.estado = EstadoPropuesta.RECHAZADA
+        propuesta.save()
+    return redirect('perfil_paciente')
+
+# ---------------------------------------------------------
+# 5. VISTA PACIENTE: SOLICITAR CITA (Tu lógica de Calendario intacta)
 # ---------------------------------------------------------
 @login_required
 def solicitar_cita(request):
@@ -91,26 +120,24 @@ def solicitar_cita(request):
         medico_id = request.POST.get('medico')
         fecha = request.POST.get('fecha')
         hora = request.POST.get('hora')
-        
         try:
             nueva_cita = Cita(
                 paciente=request.user.paciente,
                 medico_id=medico_id,
                 fecha=fecha,
                 hora_inicio=hora,
-                estado='C' # Nacen confirmadas
+                estado='C'
             )
             nueva_cita.full_clean() 
             nueva_cita.save()
             return render(request, 'gestion_citas/cita_confirmada.html', {'cita': nueva_cita})
-            
         except ValidationError as e:
             if hasattr(e, 'message_dict'):
                 error_personalizado = e.message_dict.get('__all__', e.messages)[0]
             else:
                 error_personalizado = e.messages[0]
 
-    # Carga de datos
+    # ESTA ES LA PARTE QUE BLOQUEA DÍAS EN EL CALENDARIO
     medicos = Medico.objects.all()
     horarios_json = {m.id: list(m.horarios.values_list('dia_semana', flat=True)) for m in medicos}
     
@@ -128,12 +155,11 @@ def solicitar_cita(request):
     })
 
 # ---------------------------------------------------------
-# 5. AJAX: CARGAR HORAS LIBRES
+# 6. AJAX: CARGAR HORAS LIBRES
 # ---------------------------------------------------------
 def cargar_horas_libres(request):
     medico_id = request.GET.get('medico')
     fecha_str = request.GET.get('fecha')
-    
     if not medico_id or not fecha_str:
         return JsonResponse({'horas': []})
 
@@ -142,7 +168,6 @@ def cargar_horas_libres(request):
     
     medico = Medico.objects.get(id=medico_id)
     horario = medico.horarios.filter(dia_semana=dia_semana).first()
-    
     if not horario:
         return JsonResponse({'horas': []})
 
@@ -152,16 +177,12 @@ def cargar_horas_libres(request):
     horas_posibles = []
     actual = datetime.combine(fecha_obj, actual_time)
     fin = datetime.combine(fecha_obj, fin_time)
-    
     while actual < fin:
         horas_posibles.append(actual.time())
         actual += timedelta(minutes=30)
 
-    # Solo bloqueamos citas Pendientes (P) o Confirmadas (C)
     citas_ocupadas = Cita.objects.filter(
-        medico=medico, 
-        fecha=fecha_obj, 
-        estado__in=['P', 'C'] 
+        medico=medico, fecha=fecha_obj, estado__in=['P', 'C'] 
     ).values_list('hora_inicio', flat=True)
 
     citas_ocupadas_limpias = [h.replace(second=0, microsecond=0) for h in citas_ocupadas]
@@ -170,38 +191,28 @@ def cargar_horas_libres(request):
     return JsonResponse({'horas': horas_libres})
 
 # ---------------------------------------------------------
-# 6. VISTA ADMINISTRATIVO: PERFIL ADMINISTRATIVO
+# 7. VISTA ADMINISTRATIVO: PERFIL ADMINISTRATIVO
 # ---------------------------------------------------------
 @login_required
 def perfil_administrativo(request):
-    # 1. Seguridad
     if not (request.user.is_superuser or hasattr(request.user, 'administrativo')):
         return redirect('dashboard')
 
-    # 2. Filtros
     medico_id = request.GET.get('medico')
     fecha_filtro = request.GET.get('fecha')
-
-    # 3. Consulta base
     citas = Cita.objects.all().order_by('fecha', 'hora_inicio')
 
-    # 4. Aplicar filtros
     if medico_id:
         citas = citas.filter(medico_id=medico_id)
-    
     if fecha_filtro:
         citas = citas.filter(fecha=fecha_filtro)
     else:
-        # CORRECCIÓN: Usamos date.today() directamente (gracias al import arreglado)
         citas = citas.filter(fecha__gte=date.today())
 
     medicos = Medico.objects.all()
-
-    context = {
+    return render(request, 'gestion_citas/perfil_administrativo.html', {
         'citas': citas,
         'medicos': medicos,
         'filtro_fecha': fecha_filtro,
         'filtro_medico': int(medico_id) if medico_id else None
-    }
-    return render(request, 'gestion_citas/perfil_administrativo.html', context)
-
+    })

@@ -2,107 +2,85 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Mi Perfil - Hospital TFG</title>
+    <title>Mi Agenda - Hospital TFG</title>
     <style>
         body { font-family: 'Segoe UI', sans-serif; background-color: #f4f7f6; padding: 40px; }
-        .container { background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); max-width: 900px; margin: auto; }
+        .container { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); max-width: 800px; margin: auto; }
         
-        /* Cabecera del Perfil */
-        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; border-bottom: 2px solid #eee; padding-bottom: 20px; }
-        .header h2 { margin: 0; color: #2c3e50; }
-        .header p { margin: 5px 0 0; color: #7f8c8d; font-size: 0.9em; }
+        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #eee; padding-bottom: 15px; margin-bottom: 20px;}
+        h2 { color: #2c3e50; margin: 0;}
+        h3 { color: #34495e; margin-top: 0; }
+        
+        .btn-logout { color: #e74c3c; text-decoration: none; font-size: 0.9em; font-weight: bold; padding: 8px 15px; border: 1px solid #e74c3c; border-radius: 5px; transition: 0.3s;}
+        .btn-logout:hover { background: #e74c3c; color: white; }
 
-        /* Botón Principal */
-        .btn-solicitar { 
-            background: #2ecc71; color: white; text-decoration: none; padding: 12px 25px; 
-            border-radius: 6px; font-weight: bold; transition: background 0.3s; 
-            box-shadow: 0 2px 5px rgba(46, 204, 113, 0.3);
-        }
-        .btn-solicitar:hover { background: #27ae60; }
-        .btn-logout { color: #e74c3c; text-decoration: none; font-size: 0.9em; margin-left: 20px; }
-
-        /* Tabla */
         table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th { text-align: left; padding: 15px; background: #f8f9fa; color: #34495e; font-weight: 600; }
-        td { padding: 15px; border-bottom: 1px solid #eee; vertical-align: middle; color: #555; }
+        th { text-align: left; padding: 12px; background: #f8f9fa; color: #7f8c8d; border-bottom: 2px solid #ddd; }
+        td { padding: 12px; border-bottom: 1px solid #eee; vertical-align: middle; color: #2c3e50; }
         
-        /* Badges */
-        .badge { padding: 6px 12px; border-radius: 20px; font-size: 0.8em; font-weight: bold; }
-        .status-P { background: #fff3cd; color: #856404; }
-        .status-C { background: #d4edda; color: #155724; }
-        .status-X { background: #f8d7da; color: #721c24; }
+        /* Badges de estado */
+        .badge { padding: 5px 10px; border-radius: 15px; font-size: 0.85em; font-weight: bold; display: inline-block; text-align: center;}
+        .status-P { background: #fff3cd; color: #856404; } /* Pendiente */
+        .status-C { background: #d4edda; color: #155724; } /* Confirmada */
+        .status-X { background: #f8d7da; color: #721c24; } /* Cancelada */
 
-        .btn-cancelar { 
-            background: white; border: 1px solid #e74c3c; color: #e74c3c; padding: 6px 12px; 
-            border-radius: 4px; cursor: pointer; font-size: 0.85em; transition: 0.2s; text-decoration: none;
-        }
-        .btn-cancelar:hover { background: #e74c3c; color: white; }
+        /* Badge de urgencia */
+        .urgencia-1 { color: #2ecc71; font-weight: bold; } /* Baja */
+        .urgencia-2 { color: #f39c12; font-weight: bold; } /* Media */
+        .urgencia-3 { color: #e74c3c; font-weight: bold; } /* Alta */
 
-        .empty-state { text-align: center; padding: 50px; color: #95a5a6; }
+        /* --- AQUÍ ESTÁ EL ARREGLO PARA VS CODE --- */
+        .fila-cancelada { opacity: 0.4; background-color: #fafafa; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    
     <div class="header">
-        <div>
-            <h2>👋 Hola, {{ user.first_name }}</h2>
-            <p>Bienvenido a tu portal del paciente</p>
-        </div>
-        <div>
-            <a href="{% url 'logout' %}" class="btn-logout">Cerrar Sesión</a>
-        </div>
+        <h2>👨‍⚕️ Hola, Dr/a. {{ request.user.last_name }}</h2>
+        <a href="{% url 'logout' %}" class="btn-logout">Cerrar Sesión</a>
     </div>
 
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-        <h3 style="color: #34495e; margin: 0;">Mis Citas Médicas</h3>
-        <a href="{% url 'solicitar_cita' %}" class="btn-solicitar">＋ Solicitar Nueva Cita</a>
-    </div>
+    <h3>📅 Agenda de Pacientes</h3>
 
     {% if citas %}
         <table>
             <thead>
                 <tr>
-                    <th>Fecha</th>
-                    <th>Hora</th>
-                    <th>Médico / Especialidad</th>
+                    <th>Fecha / Hora</th>
+                    <th>Paciente</th>
+                    <th>Teléfono</th>
+                    <th>Urgencia</th>
                     <th>Estado</th>
-                    <th>Acción</th>
                 </tr>
             </thead>
             <tbody>
                 {% for cita in citas %}
-                <tr style="{% if cita.estado == 'X' %}opacity: 0.5; background: #fafafa;{% endif %}">
-                    <td>{{ cita.fecha|date:"d M Y" }}</td>
-                    <td>{{ cita.hora_inicio|time:"H:i" }}</td>
+                <tr class="{% if cita.estado == 'X' %}fila-cancelada{% endif %}">
                     <td>
-                        <strong>{{ cita.medico.user.last_name }}</strong><br>
-                        <small>{{ cita.medico.especialidad }}</small>
+                        <strong>{{ cita.fecha|date:"d/m/Y" }}</strong><br>
+                        <small style="color: #7f8c8d;">{{ cita.hora_inicio|time:"H:i" }}</small>
+                    </td>
+                    <td>
+                        <strong>{{ cita.paciente.user.first_name }} {{ cita.paciente.user.last_name }}</strong>
+                    </td>
+                    <td>{{ cita.paciente.telefono }}</td>
+                    <td>
+                        <span class="urgencia-{{ cita.urgencia }}">{{ cita.get_urgencia_display }}</span>
                     </td>
                     <td>
                         <span class="badge status-{{ cita.estado }}">
                             {{ cita.get_estado_display }}
                         </span>
                     </td>
-                    <td>
-                        {% if cita.estado != 'X' and cita.estado != 'C' %} 
-                            <a href="{% url 'cancelar_cita' cita.id %}" 
-                               class="btn-cancelar"
-                               onclick="return confirm('¿Seguro que quieres cancelar esta cita?');">
-                                Cancelar
-                            </a>
-                        {% endif %}
-                    </td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
     {% else %}
-        <div class="empty-state">
-            <h3>No tienes citas próximas</h3>
-            <p>Utiliza el botón verde para programar una visita.</p>
-        </div>
+        <p style="text-align:center; color:#7f8c8d; padding: 40px; background: #f9f9f9; border-radius: 8px;">
+            No tienes pacientes citados por el momento. ¡Disfruta del descanso! ☕
+        </p>
     {% endif %}
 </div>
 

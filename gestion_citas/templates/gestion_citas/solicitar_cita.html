@@ -87,9 +87,13 @@
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/es.js"></script>
 
+{{ horarios_json|json_script:"horarios-data" }}
+{{ resumen_horarios|json_script:"resumen-data" }}
+
 <script>
-    const horariosMedicos = {{ horarios_json|safe }};
-    const resumenHorarios = {{ resumen_horarios|safe }};
+    // Leemos el JSON de forma segura (VS Code ya no marcará error aquí)
+    const horariosMedicos = JSON.parse(document.getElementById('horarios-data').textContent);
+    const resumenHorarios = JSON.parse(document.getElementById('resumen-data').textContent);
     
     let fp; 
 

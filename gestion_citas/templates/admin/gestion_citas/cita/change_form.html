@@ -1,0 +1,128 @@
+{% extends "admin/change_form.html" %}
+
+{% block extrahead %}
+    {{ block.super }}
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+{% endblock %}
+
+{% block admin_change_form_document_ready %}
+    {{ block.super }}
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/es.js"></script>
+
+    {{ horarios_json|json_script:"horarios-data" }}
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            
+            // 1. Leemos los datos desde el HTML de forma segura y válida para JavaScript
+            const horariosString = document.getElementById('horarios-data').textContent;
+            const horariosMedicos = JSON.parse(JSON.parse(horariosString)); // Doble parseo por el json.dumps del admin
+            
+            // 2. Localizamos los campos por defecto del formulario de Django Admin
+            const medicoSelect = document.getElementById('id_medico');
+            const fechaInput = document.getElementById('id_fecha');
+            const originalTimeInput = document.getElementById('id_hora_inicio');
+            
+            if (!medicoSelect || !fechaInput || !originalTimeInput) return;
+
+            // 3. Cambiamos el campo de texto de hora de Django por un <select> dinámico
+            const horaSelect = document.createElement('select');
+            horaSelect.id = originalTimeInput.id;
+            horaSelect.name = originalTimeInput.name;
+            horaSelect.className = originalTimeInput.className;
+            horaSelect.required = true;
+            originalTimeInput.parentNode.replaceChild(horaSelect, originalTimeInput);
+
+            // 4. Función AJAX para rellenar las horas
+            function cargarHoras(medicoId, fechaStr, selectedTime = null) {
+                horaSelect.innerHTML = '<option value="">-- Buscando huecos... --</option>';
+                horaSelect.disabled = true;
+
+                fetch(`/ajax/cargar-horas/?medico=${medicoId}&fecha=${fechaStr}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        horaSelect.innerHTML = '<option value="">-- Selecciona una hora --</option>';
+                        if (data.horas.length > 0) {
+                            data.horas.forEach(hora => {
+                                const option = document.createElement('option');
+                                option.value = hora;
+                                option.text = hora;
+                                // Seleccionamos la hora si estamos editando una cita
+                                if (selectedTime && selectedTime.startsWith(hora)) {
+                                    option.selected = true;
+                                }
+                                horaSelect.appendChild(option);
+                            });
+                            horaSelect.disabled = false;
+                        } else {
+                            horaSelect.innerHTML = '<option value="">Sin huecos libres</option>';
+                        }
+                    });
+            }
+
+            // 5. Inicializamos Flatpickr
+            let fp = flatpickr("#id_fecha", {
+                locale: "es",
+                minDate: "today",
+                dateFormat: "Y-m-d",
+                disable: [function(date) { return true; }], // Todo bloqueado hasta elegir médico
+                onChange: function(selectedDates, dateStr) {
+                    const medicoId = medicoSelect.value;
+                    if (medicoId && dateStr) {
+                        cargarHoras(medicoId, dateStr);
+                    }
+                }
+            });
+
+            // 6. Al cambiar de médico
+            function alCambiarMedico() {
+                const medicoId = medicoSelect.value;
+                horaSelect.innerHTML = '<option value="">Selecciona una fecha primero</option>';
+                horaSelect.disabled = true;
+                
+                if (medicoId) {
+                    const diasPermitidos = horariosMedicos[medicoId] || [];
+                    fp.set("disable", [
+                        function(date) {
+                            let day = date.getDay();
+                            let adjustedDay = (day === 0) ? 6 : day - 1; 
+                            return !diasPermitidos.includes(adjustedDay);
+                        }
+                    ]);
+                    fp.clear(); 
+                } else {
+                    fp.set("disable", [function(date) { return true; }]);
+                    fp.clear();
+                }
+            }
+
+            medicoSelect.addEventListener('change', alCambiarMedico);
+
+            // Compatibilidad extra por si Jazzmin usa jQuery
+            const jQ = window.jQuery || window.$;
+            if (jQ) {
+                jQ('#id_medico').on('change', function() {
+                    alCambiarMedico();
+                });
+            }
+
+            // 7. Carga inicial (para cuando entras a editar una cita que ya tiene fecha/hora)
+            if (medicoSelect.value) {
+                const medicoId = medicoSelect.value;
+                const diasPermitidos = horariosMedicos[medicoId] || [];
+                fp.set("disable", [
+                    function(date) {
+                        let day = date.getDay();
+                        let adjustedDay = (day === 0) ? 6 : day - 1; 
+                        return !diasPermitidos.includes(adjustedDay);
+                    }
+                ]);
+                if (fechaInput.value) {
+                    const existingTime = originalTimeInput.getAttribute('value');
+                    cargarHoras(medicoId, fechaInput.value, existingTime);
+                }
+            }
+        });
+    </script>
+{% endblock %}

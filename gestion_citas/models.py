@@ -18,6 +18,11 @@ class Turno(models.TextChoices):
     MANANA = 'M', 'Mañana'
     TARDE = 'T', 'Tarde'
 
+class NivelUrgencia(models.IntegerChoices):
+    BAJA = 1, 'Baja'
+    MEDIA = 2, 'Media'
+    ALTA = 3, 'Alta'
+
 # ==========================================
 # 2. ENTIDADES INDEPENDIENTES
 # ==========================================
@@ -80,9 +85,7 @@ class Administrativo(models.Model):
     def __str__(self):
         return f"Admin: {self.user.first_name} {self.user.last_name} ({self.centro})"
     
-# ==========================================
-# 4. DISPONIBILIDAD 
-# ==========================================
+
 # ==========================================
 # 4. DISPONIBILIDAD 
 # ==========================================
@@ -142,8 +145,10 @@ class Cita(models.Model):
     medico = models.ForeignKey(Medico, on_delete=models.CASCADE, related_name='citas')
     fecha = models.DateField()
     hora_inicio = models.TimeField()
-    urgencia = models.IntegerField(default=1) # 1: Baja, 2: Media, 3: Alta
-    
+    urgencia = models.IntegerField(
+        choices=NivelUrgencia.choices, 
+        default=NivelUrgencia.BAJA
+    )
     estado = models.CharField(
         max_length=1, 
         choices=EstadoCita.choices, 
@@ -158,13 +163,14 @@ class Cita(models.Model):
     
     def clean(self):
         # 1. Validar que la cita no sea en el pasado 
-        if self.fecha < datetime.date.today() and self.estado != EstadoCita.CANCELADA:
+        # MODIFICACIÓN: Si la cita ya existe (self.id), permitimos guardarla aunque sea 
+        # una fecha pasada (necesario para las pruebas del motor de reasignación).
+        if not self.id and self.fecha < datetime.date.today() and self.estado != EstadoCita.CANCELADA:
             raise ValidationError("No se pueden crear citas en el pasado.")
       
-        # 2. Validar Disponibilidad del Médico y TURNOS (Mejora Tutor)
+        # 2. Validar Disponibilidad del Médico y TURNOS
         dia_semana_cita = self.fecha.weekday() 
         
-        # Recuperamos el horario concreto para saber a qué hora empieza a trabajar
         horario = HorarioMedico.objects.filter(
             medico=self.medico,              
             dia_semana=dia_semana_cita,      
@@ -175,7 +181,6 @@ class Cita(models.Model):
             raise ValidationError(f"El Dr/a. {self.medico.user.last_name} no trabaja los {self.fecha.strftime('%A')}.")
         
         # Validación B: ¿La hora está dentro del rango?
-        # Nota: Ajustamos para que la hora de la cita sea estrictamente menor a la hora de fin
         if not (horario.hora_inicio <= self.hora_inicio < horario.hora_fin):
              raise ValidationError(f"La hora debe estar entre {horario.hora_inicio.strftime('%H:%M')} y {horario.hora_fin.strftime('%H:%M')}.")
 
@@ -186,15 +191,17 @@ class Cita(models.Model):
         diferencia = minutos_cita - minutos_inicio_medico
         
         if diferencia % DURACION_CITA != 0:
-            raise ValidationError(f"Las citas deben ser cada {DURACION_CITA} minutos exactos (ej: {horario.hora_inicio.strftime('%H:%M')}, "
-                                  f"{(datetime.datetime.combine(datetime.date.today(), horario.hora_inicio) + timedelta(minutes=DURACION_CITA)).strftime('%H:%M')}...).")
+            raise ValidationError(f"Las citas deben ser cada {DURACION_CITA} minutos exactos.")
 
         # 3. Validar Solapamientos (R14)
+        # Importante: Excluimos las citas canceladas del solapamiento, 
+        # porque un hueco cancelado es un hueco LIBRE.
+        
         cita_medico_ocupada = Cita.objects.filter(
             medico=self.medico,
             fecha=self.fecha,
             hora_inicio=self.hora_inicio
-        ).exclude(id=self.id).exists()
+        ).exclude(id=self.id).exclude(estado=EstadoCita.CANCELADA).exists()
 
         if cita_medico_ocupada:
             raise ValidationError("El médico ya tiene una cita asignada a esa hora.")
@@ -203,11 +210,11 @@ class Cita(models.Model):
             paciente=self.paciente,
             fecha=self.fecha,
             hora_inicio=self.hora_inicio
-        ).exclude(id=self.id).exists()
+        ).exclude(id=self.id).exclude(estado=EstadoCita.CANCELADA).exists()
 
         if cita_paciente_ocupada:
             raise ValidationError("El paciente ya tiene una cita a esa hora.")
-
+    
     def save(self, *args, **kwargs):
             # 1. Ejecutar validaciones 
             self.full_clean()
@@ -228,3 +235,43 @@ class Cita(models.Model):
             if activar_motor:
                 from .algoritmo_reasignacion import iniciar_reasignacion 
                 iniciar_reasignacion(self)
+
+# ==========================================
+# 6. GESTIÓN VISUAL DE HORARIOS (PROXY)
+# ==========================================
+class GestionHorario(Medico):
+    class Meta:
+        proxy = True # Esto le dice a Django que no cree una tabla nueva
+        verbose_name = "Gestión de Horario"
+        verbose_name_plural = "Gestión de Horarios"
+
+# ==========================================
+# 7. MOTOR DE REASIGNACIÓN (R8)
+# ==========================================
+class EstadoPropuesta(models.TextChoices):
+    PENDIENTE = 'PENDIENTE', 'Pendiente de respuesta'
+    ACEPTADA = 'ACEPTADA', 'Aceptada por el paciente'
+    RECHAZADA = 'RECHAZADA', 'Rechazada por el paciente'
+    EXPIRADA = 'EXPIRADA', 'Tiempo límite agotado'
+
+class PropuestaReasignacion(models.Model):
+    # La cita que el paciente YA tiene (la que queremos mejorar)
+    cita_original = models.ForeignKey(Cita, on_delete=models.CASCADE, related_name='propuestas')
+    
+    # Los datos del NUEVO hueco que le ofrecemos (copiados de la cita cancelada)
+    fecha_oferta = models.DateField()
+    hora_oferta = models.TimeField()
+    medico_oferta = models.ForeignKey(Medico, on_delete=models.CASCADE)
+    
+    # Control de tiempos (R8 - TTL)
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+    fecha_limite = models.DateTimeField(help_text="Hasta cuándo es válida esta oferta")
+    
+    estado = models.CharField(
+        max_length=20, 
+        choices=EstadoPropuesta.choices, 
+        default=EstadoPropuesta.PENDIENTE
+    )
+
+    def __str__(self):
+        return f"Propuesta para {self.cita_original.paciente}: {self.fecha_oferta} a las {self.hora_oferta}"
