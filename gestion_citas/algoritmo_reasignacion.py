@@ -21,7 +21,7 @@ def iniciar_reasignacion(cita_cancelada):
 
     # --- PROTECCIÓN PARA PRUEBAS Y MUNDO REAL ---
     # Si el hueco liberado es de una fecha que ya pasó, el motor no debe actuar.
-    if cita_cancelada.fecha < datetime.date.today():
+    if cita_cancelada.fecha < datetime.today().date():
         print("🤷 MOTOR: El hueco liberado es de una fecha pasada. No se puede reasignar a nadie en el pasado.")
         return
 
@@ -99,9 +99,8 @@ def iniciar_reasignacion(cita_cancelada):
         # Crear la propuesta con TTL (Time To Live)
         PropuestaReasignacion.objects.create(
             cita_original=mejor_candidato,
-            fecha_oferta=fecha_hueco,
-            hora_oferta=hora_hueco,
-            medico_oferta=medico,
+            paciente=mejor_candidato.paciente,
+            hueco=cita_cancelada,
             fecha_limite=timezone.now() + timedelta(hours=HORAS_TTL)
         )
         print("📨 MOTOR: Propuesta enviada y guardada en base de datos.")

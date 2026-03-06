@@ -9,7 +9,8 @@ from django.utils.safestring import mark_safe
 
 from .models import (
     Administrativo, Centro, Cita, Especialidad, 
-    HorarioMedico, Medico, Paciente, PropuestaReasignacion, GestionHorario
+    HorarioMedico, Medico, Paciente, PropuestaReasignacion, GestionHorario,
+    Notificacion, ConfiguracionReasignacion
 )
 
 # ================================================================
@@ -111,11 +112,18 @@ class CitaAdmin(admin.ModelAdmin):
     list_display = ('paciente', 'medico', 'fecha', 'hora_inicio', 'urgencia', 'estado')
     list_filter = ('estado', 'fecha', 'medico')
     
+    # FORZAR ORDEN LÓGICO DEL FORMULARIO
+    fields = ('paciente', 'especialidad', 'centro', 'medico', 'fecha', 'hora_inicio', 'urgencia', 'estado')
+    
     formfield_overrides = {
         models.TimeField: {'widget': forms.TimeInput(format='%H:%M', attrs={'type': 'time', 'step': '1800'})},
     }
 
     change_form_template = 'admin/gestion_citas/cita/change_form.html'
+    
+    # La lógica ahora vive inline en el template change_form.html
+    # class Media:
+    #     js = ('admin/js/citas_admin_v4.js',)
     
     def get_horarios_json(self):
         medicos = Medico.objects.all()
@@ -123,17 +131,25 @@ class CitaAdmin(admin.ModelAdmin):
 
     def add_view(self, request, form_url='', extra_context=None):
         extra_context = extra_context or {}
-        extra_context['horarios_json'] = json.dumps(self.get_horarios_json())
+        extra_context['horarios_json'] = self.get_horarios_json()
         return super().add_view(request, form_url, extra_context=extra_context)
 
     def change_view(self, request, object_id, form_url='', extra_context=None):
         extra_context = extra_context or {}
-        extra_context['horarios_json'] = json.dumps(self.get_horarios_json())
+        extra_context['horarios_json'] = self.get_horarios_json()
         return super().change_view(request, object_id, form_url, extra_context=extra_context)
 
 class PropuestaAdmin(admin.ModelAdmin):
-    list_display = ('cita_original', 'fecha_oferta', 'hora_oferta', 'estado')
-    list_filter = ('estado', 'fecha_oferta')
+    list_display = ('cita_original', 'get_fecha', 'get_hora', 'estado')
+    list_filter = ('estado', 'hueco__fecha')
+
+    @admin.display(description='Fecha Oferta')
+    def get_fecha(self, obj):
+        return obj.hueco.fecha if obj.hueco else '-'
+
+    @admin.display(description='Hora Oferta')
+    def get_hora(self, obj):
+        return obj.hueco.hora_inicio if obj.hueco else '-'
 
 # ================================================================
 # 4. REGISTRO DE MODELOS
@@ -147,6 +163,8 @@ admin.site.register(Centro)
 admin.site.register(Especialidad)
 admin.site.register(Cita, CitaAdmin)
 admin.site.register(PropuestaReasignacion, PropuestaAdmin) 
+admin.site.register(Notificacion)
+admin.site.register(ConfiguracionReasignacion)
 
 # ¡AQUÍ REGISTRAMOS TU NUEVO MENÚ VISUAL DE HORARIOS!
 admin.site.register(GestionHorario, GestionHorarioAdmin)

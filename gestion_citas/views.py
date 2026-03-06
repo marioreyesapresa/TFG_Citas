@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 # Importamos los modelos necesarios para el motor
-from .models import Cita, Medico, Paciente, EstadoCita, PropuestaReasignacion, EstadoPropuesta 
+from .models import Cita, Medico, Paciente, Centro, Especialidad, EstadoCita, PropuestaReasignacion, EstadoPropuesta 
 from django.http import JsonResponse
 from django.core.exceptions import ValidationError 
 
@@ -148,6 +148,7 @@ def solicitar_cita(request):
         resumen_horarios[m.id] = textos
 
     return render(request, 'gestion_citas/solicitar_cita.html', {
+        'especialidades': Especialidad.objects.all(),
         'medicos': medicos,
         'horarios_json': horarios_json,
         'resumen_horarios': resumen_horarios,
@@ -155,8 +156,39 @@ def solicitar_cita(request):
     })
 
 # ---------------------------------------------------------
-# 6. AJAX: CARGAR HORAS LIBRES
+# 6. AJAX: CARGAR FILTROS DINÁMICOS
 # ---------------------------------------------------------
+
+def cargar_centros_por_especialidad(request):
+    especialidad_id = request.GET.get('especialidad_id')
+    if not especialidad_id or especialidad_id == "undefined":
+        return JsonResponse({'centros': []})
+    
+    # Obtener centros que tienen al menos un médico con esa especialidad
+    centros_ids = Medico.objects.filter(especialidad_id=especialidad_id).values_list('centro_id', flat=True).distinct()
+    centros = Centro.objects.filter(id__in=centros_ids)
+    
+    resultados = [{'id': c.id, 'nombre': c.nombre} for c in centros]
+    return JsonResponse({'centros': resultados})
+
+def cargar_medicos_por_especialidad_y_centro(request):
+    especialidad_id = request.GET.get('especialidad_id')
+    centro_id = request.GET.get('centro_id')
+    
+    if not especialidad_id or not centro_id or especialidad_id == "undefined" or centro_id == "undefined":
+        return JsonResponse({'medicos': []})
+    
+    medicos = Medico.objects.filter(
+        especialidad_id=especialidad_id, 
+        centro_id=centro_id
+    ).select_related('user')
+    
+    resultados = [
+        {'id': m.id, 'nombre': f"Dr/a. {m.user.first_name} {m.user.last_name}"} 
+        for m in medicos
+    ]
+    return JsonResponse({'medicos': resultados})
+
 def cargar_horas_libres(request):
     medico_id = request.GET.get('medico')
     fecha_str = request.GET.get('fecha')

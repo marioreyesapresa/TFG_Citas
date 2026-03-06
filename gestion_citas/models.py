@@ -143,6 +143,8 @@ class EstadoCita(models.TextChoices):
 class Cita(models.Model):
     paciente = models.ForeignKey(Paciente, on_delete=models.CASCADE, related_name='citas')
     medico = models.ForeignKey(Medico, on_delete=models.CASCADE, related_name='citas')
+    especialidad = models.ForeignKey(Especialidad, on_delete=models.CASCADE, null=True, blank=True)
+    centro = models.ForeignKey(Centro, on_delete=models.CASCADE, null=True, blank=True)
     fecha = models.DateField()
     hora_inicio = models.TimeField()
     urgencia = models.IntegerField(
@@ -162,12 +164,33 @@ class Cita(models.Model):
         return f"Cita: {self.paciente} con {self.medico} el {self.fecha}"
     
     def clean(self):
+        # LOGS DE EMERGENCIA PARA CONSOLA DE SERVIDOR
+        print(f"\n--- VALIDANDO CITA ---")
+        print(f"Especialidad: {self.especialidad}")
+        print(f"Centro: {self.centro}")
+        print(f"Medico: {self.medico} (Centro: {self.medico.centro if self.medico else 'N/A'}, Esp: {self.medico.especialidad if self.medico else 'N/A'})")
+        
         # 1. Validar que la cita no sea en el pasado 
-        # MODIFICACIÓN: Si la cita ya existe (self.id), permitimos guardarla aunque sea 
-        # una fecha pasada (necesario para las pruebas del motor de reasignación).
         if not self.id and self.fecha < datetime.date.today() and self.estado != EstadoCita.CANCELADA:
             raise ValidationError("No se pueden crear citas en el pasado.")
+
+        # 1.1 Validar Coherencia de Especialidad (NUEVO)
+        if self.medico and self.especialidad:
+            if self.medico.especialidad != self.especialidad:
+                raise ValidationError({
+                    'medico': f"⚠️ ERROR DE COHERENCIA: El Dr/a. {self.medico.user.last_name} es de la especialidad {self.medico.especialidad}, NO de {self.especialidad}. Por favor, selecciona un médico correcto."
+                })
+        
+        # 1.2 Validar Coherencia de Centro (NUEVO)
+        if self.medico and self.centro:
+            if self.medico.centro != self.centro:
+                raise ValidationError({
+                    'medico': f"⚠️ ERROR DE UBICACIÓN: El Dr/a. {self.medico.user.last_name} trabaja en {self.medico.centro}, NO en {self.centro}."
+                })
       
+        if not self.fecha or not self.hora_inicio or not self.medico:
+            return
+
         # 2. Validar Disponibilidad del Médico y TURNOS
         dia_semana_cita = self.fecha.weekday() 
         
@@ -258,10 +281,9 @@ class PropuestaReasignacion(models.Model):
     # La cita que el paciente YA tiene (la que queremos mejorar)
     cita_original = models.ForeignKey(Cita, on_delete=models.CASCADE, related_name='propuestas')
     
-    # Los datos del NUEVO hueco que le ofrecemos (copiados de la cita cancelada)
-    fecha_oferta = models.DateField()
-    hora_oferta = models.TimeField()
-    medico_oferta = models.ForeignKey(Medico, on_delete=models.CASCADE)
+    # El hueco libre que le ofrecemos (la Cita liberada/cancelada)
+    hueco = models.OneToOneField(Cita, on_delete=models.CASCADE, related_name='es_propuesta_de', null=True, blank=True)
+    paciente = models.ForeignKey(Paciente, on_delete=models.CASCADE, related_name='propuestas_recibidas', null=True, blank=True)
     
     # Control de tiempos (R8 - TTL)
     fecha_creacion = models.DateTimeField(auto_now_add=True)
@@ -274,4 +296,29 @@ class PropuestaReasignacion(models.Model):
     )
 
     def __str__(self):
-        return f"Propuesta para {self.cita_original.paciente}: {self.fecha_oferta} a las {self.hora_oferta}"
+        # Protegemos el print por si el hueco es nulo al crearla en el panel admin temporalmente
+        fecha = self.hueco.fecha if self.hueco else '??'
+        hora = self.hueco.hora_inicio if self.hueco else '??'
+        return f"Propuesta para {self.paciente}: {fecha} a las {hora}"
+
+class Notificacion(models.Model):
+    paciente = models.ForeignKey(Paciente, on_delete=models.CASCADE, related_name='notificaciones')
+    propuesta = models.ForeignKey(PropuestaReasignacion, on_delete=models.CASCADE, null=True, blank=True)
+    mensaje = models.TextField()
+    leida = models.BooleanField(default=False)
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Notificación para {self.paciente}: {'Leída' if self.leida else 'No leída'}"
+
+class ConfiguracionReasignacion(models.Model):
+    peso_urgencia = models.FloatField(default=15.0)
+    peso_antiguedad = models.FloatField(default=0.1)
+    prioridad_turno = models.FloatField(default=10.0)
+
+    class Meta:
+        verbose_name = "Configuración de Reasignación"
+        verbose_name_plural = "Configuraciones de Reasignación"
+
+    def __str__(self):
+        return "Configuración Global del Motor"

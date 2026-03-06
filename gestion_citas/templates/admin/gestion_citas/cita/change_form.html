@@ -1,128 +1,194 @@
 {% extends "admin/change_form.html" %}
+{% load static %}
 
 {% block extrahead %}
     {{ block.super }}
+    <style>
+        /* Estilos finales para el motor de filtrado dinámico */
+        .cascada-loading { opacity: 0.5; pointer-events: none; }
+        
+        /* Estilos para el selector de horas dinámico */
+        #id_hora_inicio_select {
+            width: 100%;
+            padding: 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            margin-top: 5px;
+        }
+    </style>
+    <!-- Flatpickr para el bloqueo de días -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/es.js"></script>
+{% endblock %}
+
+{% block footer %}
+    {{ block.super }}
+    <script>
+    (function($) {
+        'use strict';
+        
+        $(document).ready(function() {
+            var urlCentros = "{% url 'ajax_cargar_centros_esp' %}";
+            var urlMedicos = "{% url 'ajax_cargar_medicos_esp_centro' %}";
+            var urlHoras = "{% url 'ajax_cargar_horas' %}";
+
+            var lastEsp = $('#id_especialidad').val();
+            var lastCentro = $('#id_centro').val();
+            var lastMedico = $('#id_medico').val();
+            var lastFechaValue = $('#id_fecha').val();
+
+            // Cargar datos de horarios inyectados
+            var horariosData = JSON.parse(document.getElementById('horarios-data').textContent);
+            var fpInstance = null;
+
+            // Inyectar el SELECT de horas dinámico
+            var $originalHoraInput = $('#id_hora_inicio');
+            var $horaSelect = $('<select id="id_hora_inicio_select" class="form-control"><option value="">-- Elige fecha primero --</option></select>');
+            
+            $originalHoraInput.hide();
+            $originalHoraInput.after($horaSelect);
+
+            function cargarHoras(medicoId, fechaStr) {
+                if (!medicoId || !fechaStr) {
+                    $horaSelect.empty().append('<option value="">-- Elige fecha primero --</option>').prop('disabled', true);
+                    return;
+                }
+
+                $horaSelect.prop('disabled', true);
+                var partes = fechaStr.split('/');
+                var fechaISO = partes[2] + '-' + partes[1] + '-' + partes[0];
+
+                $.getJSON(urlHoras, {medico: medicoId, fecha: fechaISO}, function(data) {
+                    var valActualPre = $originalHoraInput.val();
+                    $horaSelect.empty().append('<option value="">-- Selecciona hora --</option>');
+                    
+                    if (data.horas && data.horas.length > 0) {
+                        data.horas.forEach(function(h) {
+                            $horaSelect.append(new Option(h, h));
+                        });
+                        $horaSelect.prop('disabled', false);
+                        
+                        // Intentar recuperar valor previo (muy importante para re-renderizado por errores)
+                        if (valActualPre) {
+                            var normal = valActualPre.substring(0, 5);
+                            $horaSelect.val(normal);
+                        }
+                        
+                        // Sincrización final: solo si el select tiene algo, actualizamos el real
+                        if ($horaSelect.val()) {
+                            $originalHoraInput.val($horaSelect.val());
+                        }
+                    } else {
+                        $horaSelect.append('<option value="">Sin huecos libres</option>');
+                        if (!valActualPre) $originalHoraInput.val('');
+                    }
+                });
+            }
+
+            // Detección de cambios manuales en el select
+            $horaSelect.on('change', function() {
+                var v = $(this).val();
+                $originalHoraInput.val(v);
+                console.log("V24: Hora sincronizada -> " + v);
+            });
+
+            // BLINDAJE FINAL: Sincronización en el momento del SUBMIT
+            $('#cita_form, #cita_form form').on('submit', function() {
+                var v = $horaSelect.val();
+                if (v) {
+                    $originalHoraInput.val(v);
+                    console.log("V24: BLOQUEO SUBMIT - Forzando hora -> " + v);
+                }
+            });
+
+            function initFlatpickr(medicoId) {
+                var validDays = horariosData[medicoId] || [];
+                if (fpInstance) fpInstance.destroy();
+
+                fpInstance = flatpickr("#id_fecha", {
+                    locale: "es",
+                    dateFormat: "d/m/Y",
+                    altFormat: "Y-m-d",
+                    allowInput: true,
+                    minDate: "today",
+                    disable: [
+                        function(date) {
+                            var flatDay = date.getDay();
+                            var djangoDay = (flatDay === 0) ? 6 : flatDay - 1;
+                            return !validDays.includes(djangoDay);
+                        }
+                    ],
+                    onChange: function(selectedDates, dateStr) {
+                        cargarHoras($('#id_medico').val(), dateStr);
+                    }
+                });
+            }
+
+            function reset($el) {
+                if ($el.length) $el.empty().append('<option value="">---------</option>').val('').trigger('change.select2');
+            }
+
+            function sync() {
+                var currentEsp = $('#id_especialidad').val();
+                var currentCentro = $('#id_centro').val();
+                var currentMedico = $('#id_medico').val();
+                var currentFechaValue = $('#id_fecha').val();
+
+                if (currentEsp !== lastEsp) {
+                    lastEsp = currentEsp;
+                    reset($('#id_centro'));
+                    reset($('#id_medico'));
+                    if (currentEsp) {
+                        $.getJSON(urlCentros, {especialidad_id: currentEsp}, function(data) {
+                            $.each(data.centros, function(i, item) { $('#id_centro').append(new Option(item.nombre, item.id)); });
+                            $('#id_centro').trigger('change.select2');
+                            lastCentro = $('#id_centro').val();
+                        });
+                    }
+                }
+
+                if (currentCentro !== lastCentro) {
+                    lastCentro = currentCentro;
+                    reset($('#id_medico'));
+                    if (currentCentro && currentEsp) {
+                        $.getJSON(urlMedicos, {especialidad_id: currentEsp, centro_id: currentCentro}, function(data) {
+                            $.each(data.medicos, function(i, item) { $('#id_medico').append(new Option(item.nombre, item.id)); });
+                            $('#id_medico').trigger('change.select2');
+                            lastMedico = $('#id_medico').val();
+                        });
+                    }
+                }
+
+                if (currentMedico !== lastMedico) {
+                    lastMedico = currentMedico;
+                    if (currentMedico) {
+                        initFlatpickr(currentMedico);
+                        if (currentFechaValue) cargarHoras(currentMedico, currentFechaValue);
+                    } else {
+                        if (fpInstance) { fpInstance.destroy(); fpInstance = null; }
+                        $horaSelect.empty().append('<option value="">-- Elige médico primero --</option>').prop('disabled', true);
+                    }
+                }
+
+                if (currentFechaValue !== lastFechaValue) {
+                    lastFechaValue = currentFechaValue;
+                    if (currentMedico && currentFechaValue) cargarHoras(currentMedico, currentFechaValue);
+                }
+            }
+
+            if (lastMedico) {
+                initFlatpickr(lastMedico);
+                if (lastFechaValue) cargarHoras(lastMedico, lastFechaValue);
+            }
+
+            setInterval(sync, 800);
+        });
+    })(typeof django !== 'undefined' && django.jQuery ? django.jQuery : (typeof jQuery !== 'undefined' ? jQuery : $));
+    </script>
 {% endblock %}
 
 {% block admin_change_form_document_ready %}
     {{ block.super }}
-    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/es.js"></script>
-
     {{ horarios_json|json_script:"horarios-data" }}
-
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            
-            // 1. Leemos los datos desde el HTML de forma segura y válida para JavaScript
-            const horariosString = document.getElementById('horarios-data').textContent;
-            const horariosMedicos = JSON.parse(JSON.parse(horariosString)); // Doble parseo por el json.dumps del admin
-            
-            // 2. Localizamos los campos por defecto del formulario de Django Admin
-            const medicoSelect = document.getElementById('id_medico');
-            const fechaInput = document.getElementById('id_fecha');
-            const originalTimeInput = document.getElementById('id_hora_inicio');
-            
-            if (!medicoSelect || !fechaInput || !originalTimeInput) return;
-
-            // 3. Cambiamos el campo de texto de hora de Django por un <select> dinámico
-            const horaSelect = document.createElement('select');
-            horaSelect.id = originalTimeInput.id;
-            horaSelect.name = originalTimeInput.name;
-            horaSelect.className = originalTimeInput.className;
-            horaSelect.required = true;
-            originalTimeInput.parentNode.replaceChild(horaSelect, originalTimeInput);
-
-            // 4. Función AJAX para rellenar las horas
-            function cargarHoras(medicoId, fechaStr, selectedTime = null) {
-                horaSelect.innerHTML = '<option value="">-- Buscando huecos... --</option>';
-                horaSelect.disabled = true;
-
-                fetch(`/ajax/cargar-horas/?medico=${medicoId}&fecha=${fechaStr}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        horaSelect.innerHTML = '<option value="">-- Selecciona una hora --</option>';
-                        if (data.horas.length > 0) {
-                            data.horas.forEach(hora => {
-                                const option = document.createElement('option');
-                                option.value = hora;
-                                option.text = hora;
-                                // Seleccionamos la hora si estamos editando una cita
-                                if (selectedTime && selectedTime.startsWith(hora)) {
-                                    option.selected = true;
-                                }
-                                horaSelect.appendChild(option);
-                            });
-                            horaSelect.disabled = false;
-                        } else {
-                            horaSelect.innerHTML = '<option value="">Sin huecos libres</option>';
-                        }
-                    });
-            }
-
-            // 5. Inicializamos Flatpickr
-            let fp = flatpickr("#id_fecha", {
-                locale: "es",
-                minDate: "today",
-                dateFormat: "Y-m-d",
-                disable: [function(date) { return true; }], // Todo bloqueado hasta elegir médico
-                onChange: function(selectedDates, dateStr) {
-                    const medicoId = medicoSelect.value;
-                    if (medicoId && dateStr) {
-                        cargarHoras(medicoId, dateStr);
-                    }
-                }
-            });
-
-            // 6. Al cambiar de médico
-            function alCambiarMedico() {
-                const medicoId = medicoSelect.value;
-                horaSelect.innerHTML = '<option value="">Selecciona una fecha primero</option>';
-                horaSelect.disabled = true;
-                
-                if (medicoId) {
-                    const diasPermitidos = horariosMedicos[medicoId] || [];
-                    fp.set("disable", [
-                        function(date) {
-                            let day = date.getDay();
-                            let adjustedDay = (day === 0) ? 6 : day - 1; 
-                            return !diasPermitidos.includes(adjustedDay);
-                        }
-                    ]);
-                    fp.clear(); 
-                } else {
-                    fp.set("disable", [function(date) { return true; }]);
-                    fp.clear();
-                }
-            }
-
-            medicoSelect.addEventListener('change', alCambiarMedico);
-
-            // Compatibilidad extra por si Jazzmin usa jQuery
-            const jQ = window.jQuery || window.$;
-            if (jQ) {
-                jQ('#id_medico').on('change', function() {
-                    alCambiarMedico();
-                });
-            }
-
-            // 7. Carga inicial (para cuando entras a editar una cita que ya tiene fecha/hora)
-            if (medicoSelect.value) {
-                const medicoId = medicoSelect.value;
-                const diasPermitidos = horariosMedicos[medicoId] || [];
-                fp.set("disable", [
-                    function(date) {
-                        let day = date.getDay();
-                        let adjustedDay = (day === 0) ? 6 : day - 1; 
-                        return !diasPermitidos.includes(adjustedDay);
-                    }
-                ]);
-                if (fechaInput.value) {
-                    const existingTime = originalTimeInput.getAttribute('value');
-                    cargarHoras(medicoId, fechaInput.value, existingTime);
-                }
-            }
-        });
-    </script>
 {% endblock %}
