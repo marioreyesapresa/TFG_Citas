@@ -76,7 +76,10 @@
     <div class="main-content">
         <div class="header">
             <h1>Panel de Gestión Hospitalaria</h1>
-            <a href="{% url 'logout' %}" class="btn-logout">Cerrar Sesión</a>
+            <form action="{% url 'logout' %}" method="post" style="display: inline;">
+                {% csrf_token %}
+                <button type="submit" class="btn-logout" style="border: none; cursor: pointer; font-family: inherit;">Cerrar Sesión</button>
+            </form>
         </div>
 
         <!-- MONITOR DE REASIGNACIÓN V25 -->

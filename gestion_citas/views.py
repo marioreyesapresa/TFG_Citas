@@ -78,10 +78,13 @@ def perfil_paciente(request):
         fecha_limite__gt=ahora
     ).first()
 
+    notificaciones = Notificacion.objects.filter(paciente=paciente).order_by('-fecha_creacion')[:5]
+    print(f"DEBUG NOTIS: Paciente {paciente.id} | Notis encontradas: {notificaciones.count()} | Propuesta: {propuesta_activa}")
+
     return render(request, 'gestion_citas/perfil_paciente.html', {
         'citas': citas,
         'propuesta': propuesta_activa,
-        'notificaciones': Notificacion.objects.filter(paciente=paciente).order_by('-fecha_creacion')[:5]
+        'notificaciones': notificaciones
     })
 
 @login_required
