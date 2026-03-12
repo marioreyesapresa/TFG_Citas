@@ -90,9 +90,15 @@
             ⏳ Responde antes del <strong>{{ propuesta.fecha_limite|date:"d/m/Y" }}</strong> a las <strong>{{ propuesta.fecha_limite|time:"H:i" }}</strong> o la oferta pasará al siguiente paciente.
         </p>
 
-        <div style="margin-top: 15px;">
-            <a href="{% url 'aceptar_propuesta' propuesta.id %}" class="btn-aceptar">✅ Aceptar Adelanto</a>
-            <a href="{% url 'rechazar_propuesta' propuesta.id %}" class="btn-rechazar">❌ Mantener mi cita</a>
+        <div style="margin-top: 15px; display: flex; gap: 10px;">
+            <form action="{% url 'aceptar_propuesta' propuesta.id %}" method="post">
+                {% csrf_token %}
+                <button type="submit" class="btn-aceptar" style="border:none; cursor:pointer;">✅ Aceptar Adelanto</button>
+            </form>
+            <form action="{% url 'rechazar_propuesta' propuesta.id %}" method="post">
+                {% csrf_token %}
+                <button type="submit" class="btn-rechazar" style="border:none; cursor:pointer;">❌ Mantener mi cita</button>
+            </form>
         </div>
     </div>
     {% endif %}
@@ -125,11 +131,10 @@
                     </td>
                     <td>
                         {% if cita.estado != 'X' %} 
-                            <a href="{% url 'cancelar_cita' cita.id %}" 
-                               class="btn-cancelar"
-                               onclick="return confirm('¿Seguro que quieres cancelar esta cita? Esta acción liberará tu hueco para que otros pacientes puedan adelantarse.');">
-                                Cancelar
-                            </a>
+                            <form action="{% url 'cancelar_cita' cita.id %}" method="post" onsubmit="return confirm('¿Seguro que quieres cancelar esta cita? Esta acción liberará tu hueco para que otros pacientes puedan adelantarse.');">
+                                {% csrf_token %}
+                                <button type="submit" class="btn-cancelar">Cancelar</button>
+                            </form>
                         {% else %}
                             <span style="color: #999; font-size: 0.9em;">-</span>
                         {% endif %}
@@ -150,11 +155,20 @@
         <h3>🔔 Centro de Notificaciones</h3>
         {% if notificaciones %}
             {% for n in notificaciones %}
-                <div class="notificacion-item" {% if n.propuesta %}onclick="window.location.hash='#propuesta-adelanto'; document.getElementById('propuesta-adelanto').style.boxShadow='0 0 20px rgba(46, 204, 113, 0.5)';" title="Ver propuesta"{% endif %}>
-                    <a href="{% url 'eliminar_notificacion' n.id %}" class="btn-eliminar-noti" title="Eliminar aviso">&times;</a>
+                <div class="notificacion-item" 
+                     onclick="irAPropuesta(event)" 
+                     {% if n.propuesta %}data-has-propuesta="true"{% endif %}
+                     title="Ver propuesta">
+                    
+                    <form action="{% url 'eliminar_notificacion' n.id %}" method="post" style="display:inline;">
+                        {% csrf_token %}
+                        <button type="submit" class="btn-eliminar-noti" onclick="event.stopPropagation();" 
+                                style="background:none; border:none; cursor:pointer;" title="Eliminar aviso">&times;</button>
+                    </form>
+
                     <span class="notificacion-fecha">{{ n.fecha_creacion|date:"d M Y - H:i" }}</span>
                     {% if n.propuesta %}
-                        <a href="#propuesta-adelanto" style="text-decoration: none; color: inherit;">{{ n.mensaje }}</a>
+                        <a href="#propuesta-adelanto" style="text-decoration: none; color: inherit;" onclick="event.preventDefault();">{{ n.mensaje }}</a>
                     {% else %}
                         {{ n.mensaje }}
                     {% endif %}
@@ -164,6 +178,21 @@
             <p style="color: #95a5a6; font-style: italic;">No tienes avisos recientes.</p>
         {% endif %}
     </div>
+
+    <script>
+        function irAPropuesta(event) {
+            const propuestaEl = document.getElementById('propuesta-adelanto');
+            if (propuestaEl) {
+                window.location.hash = '#propuesta-adelanto';
+                propuestaEl.style.boxShadow = '0 0 20px rgba(46, 204, 113, 0.5)';
+                setTimeout(() => {
+                    propuestaEl.style.boxShadow = '0 4px 10px rgba(46,204,113,0.1)';
+                }, 2000);
+            } else {
+                console.log("La propuesta ya no está disponible.");
+            }
+        }
+    </script>
 
 </div>
 

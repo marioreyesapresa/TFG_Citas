@@ -318,7 +318,15 @@ class ConfiguracionReasignacion(models.Model):
 
     class Meta:
         verbose_name = "Configuración de Reasignación"
-        verbose_name_plural = "Configuraciones de Reasignación"
+        verbose_name_plural = "Configuración de Reasignaciones"
+
+    def clean(self):
+        if not self.pk and ConfiguracionReasignacion.objects.exists():
+            raise ValidationError("Solo puede existir una configuración de reasignación activa.")
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return "Configuración Global del Motor"

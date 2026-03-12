@@ -86,7 +86,13 @@ def perfil_paciente(request):
         'notificaciones': notificaciones
     })
 
+from django.views.decorators.http import require_POST
+import logging
+
+logger = logging.getLogger(__name__)
+
 @login_required
+@require_POST
 def cancelar_cita(request, cita_id):
     cita = get_object_or_404(Cita, id=cita_id, paciente=request.user.paciente)
     if cita.estado != EstadoCita.CANCELADA:
@@ -97,7 +103,9 @@ def cancelar_cita(request, cita_id):
 # ---------------------------------------------------------
 # 4. ACCIONES DEL MOTOR (Aceptar / Rechazar)
 # ---------------------------------------------------------
+
 @login_required
+@require_POST
 def aceptar_propuesta(request, propuesta_id):
     propuesta = get_object_or_404(PropuestaReasignacion, id=propuesta_id, cita_original__paciente=request.user.paciente)
     if propuesta.estado == EstadoPropuesta.PENDIENTE and propuesta.fecha_limite > timezone.now():
@@ -110,6 +118,7 @@ def aceptar_propuesta(request, propuesta_id):
     return redirect('perfil_paciente')
 
 @login_required
+@require_POST
 def rechazar_propuesta(request, propuesta_id):
     propuesta = get_object_or_404(PropuestaReasignacion, id=propuesta_id, cita_original__paciente=request.user.paciente)
     if propuesta.estado == EstadoPropuesta.PENDIENTE:
@@ -118,6 +127,7 @@ def rechazar_propuesta(request, propuesta_id):
     return redirect('perfil_paciente')
 
 @login_required
+@require_POST
 def eliminar_notificacion(request, notificacion_id):
     notificacion = get_object_or_404(Notificacion, id=notificacion_id, paciente=request.user.paciente)
     notificacion.delete()
@@ -156,7 +166,8 @@ def solicitar_cita(request):
             else:
                 error_personalizado = e.messages[0]
         except Exception as e:
-            error_personalizado = str(e)
+            logger.exception("Error al solicitar cita")
+            error_personalizado = "Ha ocurrido un error inesperado al procesar su solicitud. Por favor, inténtelo de nuevo."
 
     # ESTA ES LA PARTE QUE BLOQUEA DÍAS EN EL CALENDARIO
     medicos = Medico.objects.all()

@@ -134,3 +134,6 @@ JAZZMIN_SETTINGS = {
 JAZZMIN_UI_TWEAKS = {
     "theme": "flatly",   
 }
+
+# Clave primaria por defecto para modelos
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
