@@ -112,6 +112,9 @@ def iniciar_reasignacion(cita_cancelada):
             hueco=cita_cancelada,
             fecha_limite=timezone.now() + timedelta(hours=HORAS_TTL)
         )
+        
+        # Opcional: Podrías querer marcar la cita_original como PENDIENTE de cambio
+        # Pero según tu petición, simplemente las nuevas propuestas son las que gestionan el flujo.
 
         # CREAR NOTIFICACIÓN PERSISTENTE (Novedad V25)
         Notificacion.objects.create(

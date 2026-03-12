@@ -139,11 +139,7 @@ class Command(BaseCommand):
         self.stdout.write("Generando 150 citas (Puede tardar unos segundos)...")
         citas_creadas = 0
         intentos = 0
-        estados_citas = (
-            [EstadoCita.CONFIRMADA] * 80 + 
-            [EstadoCita.PENDIENTE] * 10 
-            # Las canceladas las inyectamos después para no activar reasignaciones masivas erráticas ahora
-        )
+        estados_citas = [EstadoCita.CONFIRMADA] * 90 
 
         slots_ocupados_medico = set()
         slots_ocupados_paciente = set()

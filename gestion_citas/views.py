@@ -79,7 +79,6 @@ def perfil_paciente(request):
     ).first()
 
     notificaciones = Notificacion.objects.filter(paciente=paciente).order_by('-fecha_creacion')[:5]
-    print(f"DEBUG NOTIS: Paciente {paciente.id} | Notis encontradas: {notificaciones.count()} | Propuesta: {propuesta_activa}")
 
     return render(request, 'gestion_citas/perfil_paciente.html', {
         'citas': citas,
@@ -118,6 +117,12 @@ def rechazar_propuesta(request, propuesta_id):
         propuesta.save()
     return redirect('perfil_paciente')
 
+@login_required
+def eliminar_notificacion(request, notificacion_id):
+    notificacion = get_object_or_404(Notificacion, id=notificacion_id, paciente=request.user.paciente)
+    notificacion.delete()
+    return redirect('perfil_paciente')
+
 # ---------------------------------------------------------
 # 5. VISTA PACIENTE: SOLICITAR CITA (Tu lógica de Calendario intacta)
 # ---------------------------------------------------------
@@ -130,12 +135,17 @@ def solicitar_cita(request):
         fecha = request.POST.get('fecha')
         hora = request.POST.get('hora')
         try:
+            # Recuperamos el médico para tener sus datos de especialidad y centro
+            medico = get_object_or_404(Medico, id=medico_id)
+            
             nueva_cita = Cita(
                 paciente=request.user.paciente,
-                medico_id=medico_id,
+                medico=medico,
+                especialidad=medico.especialidad,
+                centro=medico.centro,
                 fecha=fecha,
                 hora_inicio=hora,
-                estado='C'
+                estado=EstadoCita.CONFIRMADA
             )
             nueva_cita.full_clean() 
             nueva_cita.save()

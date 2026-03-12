@@ -25,6 +25,7 @@ urlpatterns = [
     path('ajax/cargar-horas/', views.cargar_horas_libres, name='ajax_cargar_horas'),
     path('ajax/cargar-centros-esp/', views.cargar_centros_por_especialidad, name='ajax_cargar_centros_esp'),
     path('ajax/cargar-medicos-esp-centro/', views.cargar_medicos_por_especialidad_y_centro, name='ajax_cargar_medicos_esp_centro'),
+    path('notificacion/eliminar/<int:notificacion_id>/', views.eliminar_notificacion, name='eliminar_notificacion'),
 
     # 6. RUTA PROPIA DEL ADMINISTRATIVO 
    path('perfil-administrativo/', views.perfil_administrativo, name='perfil_administrativo'),

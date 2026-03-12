@@ -154,7 +154,7 @@ class Cita(models.Model):
     estado = models.CharField(
         max_length=1, 
         choices=EstadoCita.choices, 
-        default=EstadoCita.PENDIENTE
+        default=EstadoCita.CONFIRMADA
     )
 
     class Meta:
