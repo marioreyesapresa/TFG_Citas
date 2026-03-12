@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 # Importamos los modelos necesarios para el motor
-from .models import Cita, Medico, Paciente, Centro, Especialidad, EstadoCita, PropuestaReasignacion, EstadoPropuesta 
+from .models import Cita, Medico, Paciente, Centro, Especialidad, EstadoCita, PropuestaReasignacion, EstadoPropuesta, Notificacion 
 from django.http import JsonResponse
 from django.core.exceptions import ValidationError 
 
@@ -66,19 +66,33 @@ def perfil_paciente(request):
         fecha_limite__lt=ahora
     ).update(estado=EstadoPropuesta.EXPIRADA)
 
-    # 2. Buscamos si hay una propuesta pendiente para este paciente
+    # 2. Notificaciones y Propuestas
+    notificaciones_no_leidas = Notificacion.objects.filter(paciente=paciente, leida=False).order_by('-fecha_creacion')
+    
+    # Marcamos como leídas al entrar (o podríamos hacerlo por AJAX/botón)
+    notificaciones_no_leidas.update(leida=True)
+
     propuesta_activa = PropuestaReasignacion.objects.filter(
         cita_original__paciente=paciente,
         estado=EstadoPropuesta.PENDIENTE,
         fecha_limite__gt=ahora
     ).first()
 
+    notificaciones = Notificacion.objects.filter(paciente=paciente).order_by('-fecha_creacion')[:5]
+
     return render(request, 'gestion_citas/perfil_paciente.html', {
         'citas': citas,
-        'propuesta': propuesta_activa
+        'propuesta': propuesta_activa,
+        'notificaciones': notificaciones
     })
 
+from django.views.decorators.http import require_POST
+import logging
+
+logger = logging.getLogger(__name__)
+
 @login_required
+@require_POST
 def cancelar_cita(request, cita_id):
     cita = get_object_or_404(Cita, id=cita_id, paciente=request.user.paciente)
     if cita.estado != EstadoCita.CANCELADA:
@@ -89,24 +103,34 @@ def cancelar_cita(request, cita_id):
 # ---------------------------------------------------------
 # 4. ACCIONES DEL MOTOR (Aceptar / Rechazar)
 # ---------------------------------------------------------
+
 @login_required
+@require_POST
 def aceptar_propuesta(request, propuesta_id):
     propuesta = get_object_or_404(PropuestaReasignacion, id=propuesta_id, cita_original__paciente=request.user.paciente)
     if propuesta.estado == EstadoPropuesta.PENDIENTE and propuesta.fecha_limite > timezone.now():
         cita = propuesta.cita_original
-        cita.fecha = propuesta.fecha_oferta
-        cita.hora_inicio = propuesta.hora_oferta
+        cita.fecha = propuesta.hueco.fecha
+        cita.hora_inicio = propuesta.hueco.hora_inicio
         cita.save() 
         propuesta.estado = EstadoPropuesta.ACEPTADA
         propuesta.save()
     return redirect('perfil_paciente')
 
 @login_required
+@require_POST
 def rechazar_propuesta(request, propuesta_id):
     propuesta = get_object_or_404(PropuestaReasignacion, id=propuesta_id, cita_original__paciente=request.user.paciente)
     if propuesta.estado == EstadoPropuesta.PENDIENTE:
         propuesta.estado = EstadoPropuesta.RECHAZADA
         propuesta.save()
+    return redirect('perfil_paciente')
+
+@login_required
+@require_POST
+def eliminar_notificacion(request, notificacion_id):
+    notificacion = get_object_or_404(Notificacion, id=notificacion_id, paciente=request.user.paciente)
+    notificacion.delete()
     return redirect('perfil_paciente')
 
 # ---------------------------------------------------------
@@ -121,12 +145,17 @@ def solicitar_cita(request):
         fecha = request.POST.get('fecha')
         hora = request.POST.get('hora')
         try:
+            # Recuperamos el médico para tener sus datos de especialidad y centro
+            medico = get_object_or_404(Medico, id=medico_id)
+            
             nueva_cita = Cita(
                 paciente=request.user.paciente,
-                medico_id=medico_id,
+                medico=medico,
+                especialidad=medico.especialidad,
+                centro=medico.centro,
                 fecha=fecha,
                 hora_inicio=hora,
-                estado='C'
+                estado=EstadoCita.CONFIRMADA
             )
             nueva_cita.full_clean() 
             nueva_cita.save()
@@ -136,6 +165,9 @@ def solicitar_cita(request):
                 error_personalizado = e.message_dict.get('__all__', e.messages)[0]
             else:
                 error_personalizado = e.messages[0]
+        except Exception as e:
+            logger.exception("Error al solicitar cita")
+            error_personalizado = "Ha ocurrido un error inesperado al procesar su solicitud. Por favor, inténtelo de nuevo."
 
     # ESTA ES LA PARTE QUE BLOQUEA DÍAS EN EL CALENDARIO
     medicos = Medico.objects.all()
@@ -242,9 +274,15 @@ def perfil_administrativo(request):
         citas = citas.filter(fecha__gte=date.today())
 
     medicos = Medico.objects.all()
+    propuestas_activas = PropuestaReasignacion.objects.filter(
+        estado=EstadoPropuesta.PENDIENTE,
+        fecha_limite__gt=timezone.now()
+    ).order_by('-fecha_creacion')
+
     return render(request, 'gestion_citas/perfil_administrativo.html', {
         'citas': citas,
         'medicos': medicos,
         'filtro_fecha': fecha_filtro,
-        'filtro_medico': int(medico_id) if medico_id else None
+        'filtro_medico': int(medico_id) if medico_id else None,
+        'propuestas': propuestas_activas
     })

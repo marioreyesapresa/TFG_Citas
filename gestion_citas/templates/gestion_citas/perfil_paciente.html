@@ -5,9 +5,9 @@
     <title>Mis Citas - Hospital TFG</title>
     <style>
         body { font-family: 'Segoe UI', sans-serif; background-color: #f4f7f6; padding: 40px; }
-        .container { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); max-width: 800px; margin: auto; }
+        .container { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); max-width: 900px; margin: auto; }
         
-        h2 { color: #2c3e50; border-bottom: 2px solid #eee; padding-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+        h2, h3 { color: #2c3e50; border-bottom: 2px solid #eee; padding-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
         
         .btn-nueva { background: #3498db; color: white; text-decoration: none; padding: 10px 20px; border-radius: 5px; font-size: 0.6em; vertical-align: middle; }
         .btn-nueva:hover { background: #2980b9; }
@@ -16,12 +16,11 @@
         th { text-align: left; padding: 12px; background: #f8f9fa; color: #7f8c8d; }
         td { padding: 12px; border-bottom: 1px solid #eee; vertical-align: middle; }
         
-        /* Badges de estado */
         .badge { padding: 5px 10px; border-radius: 15px; font-size: 0.85em; font-weight: bold; }
-        .status-P { background: #fff3cd; color: #856404; } /* Pendiente - Amarillo */
-        .status-C { background: #d4edda; color: #155724; } /* Confirmada - Verde */
-        .status-X { background: #f8d7da; color: #721c24; } /* Cancelada - Rojo */
-        .status-R { background: #e2e3e5; color: #383d41; } /* Reasignación - Gris */
+        .status-P { background: #fff3cd; color: #856404; }
+        .status-C { background: #d4edda; color: #155724; }
+        .status-X { background: #f8d7da; color: #721c24; }
+        .status-R { background: #e2e3e5; color: #383d41; }
 
         .btn-cancelar { 
             background: #e74c3c; color: white; border: none; padding: 8px 12px; 
@@ -31,7 +30,7 @@
         
         .empty-msg { text-align: center; color: #95a5a6; padding: 40px; }
 
-        /* Estilos para la alerta del Motor de Reasignación */
+        /* Estilos Motor Reasignación */
         .alerta-propuesta {
             background-color: #eef9f0; border: 2px solid #2ecc71; padding: 20px; 
             border-radius: 12px; margin-bottom: 30px; box-shadow: 0 4px 10px rgba(46,204,113,0.1);
@@ -41,6 +40,18 @@
         .caja-nueva { border: 2px solid #3498db; }
         .btn-aceptar { background: #2ecc71; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;}
         .btn-rechazar { background: #e74c3c; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold; margin-left: 10px; display: inline-block;}
+
+        /* Centro de Notificaciones (V25) */
+        .seccion-notificaciones { margin-top: 40px; border-top: 1px dashed #ccc; padding-top: 20px; }
+        .notificacion-item { 
+            background: #fff; border-left: 5px solid #3498db; padding: 15px; margin-bottom: 10px;
+            border-radius: 4px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); font-size: 0.9em;
+            position: relative; transition: all 0.2s;
+        }
+        .notificacion-item:hover { background: #edf2f7; cursor: pointer; }
+        .notificacion-fecha { font-size: 0.75em; color: #95a5a6; display: block; margin-bottom: 5px; }
+        .btn-eliminar-noti { position: absolute; top: 10px; right: 10px; color: #bdc3c7; text-decoration: none; font-weight: bold; font-size: 1.2em; line-height: 1; }
+        .btn-eliminar-noti:hover { color: #e74c3c; }
     </style>
 </head>
 <body>
@@ -51,13 +62,16 @@
         <h2 style="margin: 0; border: none; padding: 0;">📅 Mis Citas Médicas</h2>
         <div>
             <a href="{% url 'solicitar_cita' %}" class="btn-nueva">+ Nueva Cita</a>
-            <a href="{% url 'logout' %}" style="color: #e74c3c; text-decoration: none; font-size: 0.9em; margin-left: 15px;">Cerrar Sesión</a>
+            <form action="{% url 'logout' %}" method="post" style="display: inline;">
+                {% csrf_token %}
+                <button type="submit" style="background: none; border: none; color: #e74c3c; cursor: pointer; font-size: 0.9em; margin-left: 15px; font-family: inherit;">Cerrar Sesión</button>
+            </form>
         </div>
     </div>
     <hr style="border: 0; border-top: 2px solid #eee; margin-bottom: 20px;">
 
     {% if propuesta %}
-    <div class="alerta-propuesta">
+    <div class="alerta-propuesta" id="propuesta-adelanto">
         <h3 style="color: #27ae60; margin-top: 0;">🚀 ¡Se ha liberado un hueco!</h3>
         <p style="color: #2c3e50;">Debido a una cancelación, nuestro sistema de optimización ha encontrado una cita anterior para ti.</p>
         
@@ -67,8 +81,8 @@
                 <strong>{{ propuesta.cita_original.fecha|date:"d/m/Y" }}</strong> a las <strong>{{ propuesta.cita_original.hora_inicio|time:"H:i" }}</strong>
             </div>
             <div class="caja-cita caja-nueva">
-                <span style="color: #3498db; font-size: 0.9em; display: block; font-weight: bold;">NUEVA PROPUESTA:</span>
-                <strong>{{ propuesta.fecha_oferta|date:"d/m/Y" }}</strong> a las <strong>{{ propuesta.hora_oferta|time:"H:i" }}</strong>
+                <span style="color: #3498db; font-size: 0.9em; display: block; font-weight: bold;">NUEVA PROPUESTA (HUECO LIBERADO):</span>
+                <strong>{{ propuesta.hueco.fecha|date:"d/m/Y" }}</strong> a las <strong>{{ propuesta.hueco.hora_inicio|time:"H:i" }}</strong>
             </div>
         </div>
 
@@ -76,12 +90,19 @@
             ⏳ Responde antes del <strong>{{ propuesta.fecha_limite|date:"d/m/Y" }}</strong> a las <strong>{{ propuesta.fecha_limite|time:"H:i" }}</strong> o la oferta pasará al siguiente paciente.
         </p>
 
-        <div style="margin-top: 15px;">
-            <a href="{% url 'aceptar_propuesta' propuesta.id %}" class="btn-aceptar">✅ Aceptar Adelanto</a>
-            <a href="{% url 'rechazar_propuesta' propuesta.id %}" class="btn-rechazar">❌ Mantener mi cita</a>
+        <div style="margin-top: 15px; display: flex; gap: 10px;">
+            <form action="{% url 'aceptar_propuesta' propuesta.id %}" method="post">
+                {% csrf_token %}
+                <button type="submit" class="btn-aceptar" style="border:none; cursor:pointer;">✅ Aceptar Adelanto</button>
+            </form>
+            <form action="{% url 'rechazar_propuesta' propuesta.id %}" method="post">
+                {% csrf_token %}
+                <button type="submit" class="btn-rechazar" style="border:none; cursor:pointer;">❌ Mantener mi cita</button>
+            </form>
         </div>
     </div>
     {% endif %}
+
     {% if citas %}
         <table>
             <thead>
@@ -100,7 +121,7 @@
                         <small>{{ cita.hora_inicio|time:"H:i" }}</small>
                     </td>
                     <td>
-                        {{ cita.medico.user.last_name }}<br>
+                        Dr/a. {{ cita.medico.user.last_name }}<br>
                         <small style="color:#7f8c8d">{{ cita.medico.especialidad }}</small>
                     </td>
                     <td>
@@ -110,13 +131,12 @@
                     </td>
                     <td>
                         {% if cita.estado != 'X' %} 
-                            <a href="{% url 'cancelar_cita' cita.id %}" 
-                               class="btn-cancelar"
-                               onclick="return confirm('¿Seguro que quieres cancelar esta cita? Esta acción no se puede deshacer.');">
-                                Cancelar
-                            </a>
+                            <form action="{% url 'cancelar_cita' cita.id %}" method="post" onsubmit="return confirm('¿Seguro que quieres cancelar esta cita? Esta acción liberará tu hueco para que otros pacientes puedan adelantarse.');">
+                                {% csrf_token %}
+                                <button type="submit" class="btn-cancelar">Cancelar</button>
+                            </form>
                         {% else %}
-                            <span style="color: #999; font-size: 0.9em;">Cancelada</span>
+                            <span style="color: #999; font-size: 0.9em;">-</span>
                         {% endif %}
                     </td>
                 </tr>
@@ -129,6 +149,51 @@
             <p>Utiliza el botón de arriba para solicitar tu primera cita.</p>
         </div>
     {% endif %}
+
+    <!-- CENTRO DE MENSAJES V25 -->
+    <div class="seccion-notificaciones">
+        <h3>🔔 Centro de Notificaciones</h3>
+        {% if notificaciones %}
+            {% for n in notificaciones %}
+                <div class="notificacion-item" 
+                     onclick="irAPropuesta(event)" 
+                     {% if n.propuesta %}data-has-propuesta="true"{% endif %}
+                     title="Ver propuesta">
+                    
+                    <form action="{% url 'eliminar_notificacion' n.id %}" method="post" style="display:inline;">
+                        {% csrf_token %}
+                        <button type="submit" class="btn-eliminar-noti" onclick="event.stopPropagation();" 
+                                style="background:none; border:none; cursor:pointer;" title="Eliminar aviso">&times;</button>
+                    </form>
+
+                    <span class="notificacion-fecha">{{ n.fecha_creacion|date:"d M Y - H:i" }}</span>
+                    {% if n.propuesta %}
+                        <a href="#propuesta-adelanto" style="text-decoration: none; color: inherit;" onclick="event.preventDefault();">{{ n.mensaje }}</a>
+                    {% else %}
+                        {{ n.mensaje }}
+                    {% endif %}
+                </div>
+            {% endfor %}
+        {% else %}
+            <p style="color: #95a5a6; font-style: italic;">No tienes avisos recientes.</p>
+        {% endif %}
+    </div>
+
+    <script>
+        function irAPropuesta(event) {
+            const propuestaEl = document.getElementById('propuesta-adelanto');
+            if (propuestaEl) {
+                window.location.hash = '#propuesta-adelanto';
+                propuestaEl.style.boxShadow = '0 0 20px rgba(46, 204, 113, 0.5)';
+                setTimeout(() => {
+                    propuestaEl.style.boxShadow = '0 4px 10px rgba(46,204,113,0.1)';
+                }, 2000);
+            } else {
+                console.log("La propuesta ya no está disponible.");
+            }
+        }
+    </script>
+
 </div>
 
 </body>

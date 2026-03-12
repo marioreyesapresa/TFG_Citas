@@ -91,9 +91,9 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # CONFIGURACIÓN DE LOGIN
-LOGIN_URL = '/'          # Si intentan entrar sin permiso, los manda al login
-LOGIN_REDIRECT_URL = 'dashboard'  # Al entrar bien, los manda al distribuidor
-LOGOUT_REDIRECT_URL = '/'         # Al salir, vuelven al login
+LOGIN_URL = '/'
+LOGIN_REDIRECT_URL = 'dashboard'
+LOGOUT_REDIRECT_URL = 'login'
 
 # ==========================================
 # CONFIGURACIÓN DE JAZZMIN (TEMA VISUAL)
@@ -134,3 +134,6 @@ JAZZMIN_SETTINGS = {
 JAZZMIN_UI_TWEAKS = {
     "theme": "flatly",   
 }
+
+# Clave primaria por defecto para modelos
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
