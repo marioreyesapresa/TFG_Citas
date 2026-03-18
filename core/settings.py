@@ -137,3 +137,17 @@ JAZZMIN_UI_TWEAKS = {
 
 # Clave primaria por defecto para modelos
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# ==========================================
+# CONFIGURACIÓN DE CORREO ELECTRÓNICO (R7, R15)
+# ==========================================
+# Para desarrollo, imprimimos los emails en la consola para depurar fácilmente:
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
+# NOTA: Cuando pases a producción (ej. con Gmail), comenta la línea anterior y usa esto:
+# EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+# EMAIL_HOST = 'smtp.gmail.com'
+# EMAIL_PORT = 587
+# EMAIL_USE_TLS = True
+# EMAIL_HOST_USER = 'tu_correo@gmail.com'
+# EMAIL_HOST_PASSWORD = 'tu_contraseña_de_aplicacion'
