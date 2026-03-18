@@ -124,6 +124,14 @@ def rechazar_propuesta(request, propuesta_id):
     if propuesta.estado == EstadoPropuesta.PENDIENTE:
         propuesta.estado = EstadoPropuesta.RECHAZADA
         propuesta.save()
+        
+        # EL NÚCLEO DEL TFG: REEVALUACIÓN EN CASCADA
+        # Como este paciente ha rechazado la propuesta, el hueco original SIGUE libre.
+        # Volvemos a lanzar el motor de reasignación con el mismo hueco.
+        # Gracias a la "Regla E", este paciente será ignorado y pasaremos al siguiente mejor.
+        from .algoritmo_reasignacion import iniciar_reasignacion
+        iniciar_reasignacion(propuesta.hueco)
+
     return redirect('perfil_paciente')
 
 @login_required
