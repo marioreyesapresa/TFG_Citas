@@ -20,7 +20,7 @@ Además, el entorno cuenta con la herramienta de *seeding* o *mocking* custom (`
 
 ## 2. Modularidad y Patrones de Diseño
 
-El ecosistema hace uso intensivo del patrón arquitectónico **MVT (Model-View-Template)** dictado por Django. Todo el paradigma está pivotando a una arquitectura basada en **Roles y Privilegios**, factor esencial en el sector de saludo (Healthcare Tech).
+El ecosistema hace uso intensivo del patrón arquitectónico **MVT (Model-View-Template)** dictado por Django. Todo el paradigma está pivotando a una arquitectura basada en **Roles y Privilegios**, factor esencial en el sector de salud (Healthcare Tech).
 
 Recientemente, el código base ha sido sometido a un *Refactoring* estructural separando responsabilidades:
 *   **Desacoplamiento Front/Back:** Segregación de lógicas para Pacientes, Médicos y Administradores en diferentes módulos de vistas (`views/paciente.py`, `views/medico.py`, etc.) y formularios (`forms/paciente.py`).
@@ -42,11 +42,11 @@ El *Front-end* está operativo y distingue funcionalmente a los consumidores de 
 
 ## 5. Próximos Pasos (Next Sprint Roadmap)
 
-De acuerdo al análisis de las ramas y estado del código `HEAD` actual, el sistema es altamente funcional y estable, pero adolece de la finalización de los siguientes *Epics* preventivos para considerarse un producto 100% finalizado (Ready for QA):
+De acuerdo al análisis de las ramas actuales, el sistema se acerca velozmente a ser un producto 100% finalizado (Ready for QA). Recientemente **hemos culminado el Epic de Expiración Automática (TTL)**, garantizando mediante un Custom Django Command que ninguna propuesta venza y bloquee los huecos infinitamente.
 
-1.  **Expiración Automática de Propuestas (Cron Jobs / TTL):**
-    *   *Bloqueante:* Hemos construido el esquema y el parámetro `fecha_limite` (24 horas) para que el paciente acepte el correo. Sin embargo, nos falta el *worker* en segundo plano o *Cron Job* que revise qué propuestas no han sido respondidas en el plazo de vida, las marque en estado *EXPIRADA* (TTL alcanzado) y active obligatoriamente el descenso de la cascada para no perder el hueco liberado.
-2.  **Integración Continua de Ramas (Merge de Refactor):** 
+Los siguientes puntos pendientes críticos son:
+
+1.  **Integración Continua de Ramas (Merge de Refactor):** 
     *   *Operativo:* Sincronizar y hacer *Merge* oficial de la rama de refactorización visual (directorios y plantillas) con la rama actual que contiene la lógica en cascada del algoritmo (*feature/reasignacion-cascada*), resolviendo posibles conflictos de estructura de directorios (`views.py` vs *folder* `views/`).
 3.  **Configuración de Producción:**
     *   *Técnico:* Configurar el verdadero credencialismo de SMTP en `core/settings.py` para levantar un servidor de envíos real (sustituyendo el de consola) de cara a la defensa final o demostración del prototipo.

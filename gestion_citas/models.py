@@ -1,4 +1,5 @@
 from django.db import models
+from django.db.models import Q
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 import datetime
@@ -294,6 +295,15 @@ class PropuestaReasignacion(models.Model):
         choices=EstadoPropuesta.choices, 
         default=EstadoPropuesta.PENDIENTE
     )
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['hueco'],
+                condition=Q(estado='PENDIENTE'),
+                name='unique_pending_propuesta_per_hueco',
+            ),
+        ]
 
     def __str__(self):
         # Protegemos el print por si el hueco es nulo al crearla en el panel admin temporalmente

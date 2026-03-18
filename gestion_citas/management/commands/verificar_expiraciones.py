@@ -1,7 +1,7 @@
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 from gestion_citas.models import PropuestaReasignacion, EstadoPropuesta, Notificacion
-from gestion_citas.algoritmo_reasignacion import iniciar_reasignacion
+from gestion_citas.algoritmo_reasignacion import iniciar_reasignacion, HORAS_TTL
 
 class Command(BaseCommand):
     help = 'Revisa las propuestas de reasignación con TTL superado y dispara la cascada para el siguiente paciente.'
@@ -12,7 +12,9 @@ class Command(BaseCommand):
         # 1. Buscar propuestas pendientes que ya hayan superado el TTL límite
         propuestas_expiradas = PropuestaReasignacion.objects.filter(
             estado=EstadoPropuesta.PENDIENTE,
-            fecha_limite__lt=ahora
+            fecha_limite__lt=ahora,
+            paciente__isnull=False,
+            hueco__isnull=False
         )
 
         cantidad = propuestas_expiradas.count()
@@ -35,7 +37,7 @@ class Command(BaseCommand):
             Notificacion.objects.create(
                 paciente=paciente,
                 propuesta=propuesta,
-                mensaje=f"⏳ Tu propuesta de adelanto para el día {hueco.fecha.strftime('%d/%m/%Y')} ha expirado (han pasado más de 24h) y ha sido cedida de forma automática al siguiente paciente en la lista."
+                mensaje=f"⏳ Tu propuesta de adelanto para el día {hueco.fecha.strftime('%d/%m/%Y')} ha expirado (han pasado más de {HORAS_TTL}h) y ha sido cedida de forma automática al siguiente paciente en la lista."
             )
 
             self.stdout.write(self.style.ERROR(f"   => ❌ Propuesta de {paciente} bloqueada permanentemente por caducidad."))
