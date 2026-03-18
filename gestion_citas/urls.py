@@ -4,7 +4,7 @@ from . import views
 
 urlpatterns = [
     # 1. LOGIN / LOGOUT
-    path('', auth_views.LoginView.as_view(template_name='gestion_citas/login.html'), name='login'),
+    path('', auth_views.LoginView.as_view(template_name='gestion_citas/comun/login.html'), name='login'),
     path('logout/', auth_views.LogoutView.as_view(), name='logout'),
 
     # 2. DASHBOARD (Distribuidor de roles)
@@ -16,6 +16,7 @@ urlpatterns = [
     # 4. RUTAS DE PACIENTE
     path('solicitar-cita/', views.solicitar_cita, name='solicitar_cita'),
     path('perfil-paciente/', views.perfil_paciente, name='perfil_paciente'), 
+    path('perfil-paciente/editar/', views.editar_perfil, name='editar_perfil'),
     path('cancelar-cita/<int:cita_id>/', views.cancelar_cita, name='cancelar_cita'),
     # Rutas para el Motor de Reasignación
     path('aceptar-propuesta/<int:propuesta_id>/', views.aceptar_propuesta, name='aceptar_propuesta'),

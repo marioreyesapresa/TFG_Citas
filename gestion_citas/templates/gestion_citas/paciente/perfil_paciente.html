@@ -58,16 +58,32 @@
 
 <div class="container">
     
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+    {% if messages %}
+        {% for message in messages %}
+            <div style="background: #d4edda; color: #155724; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #c3e6cb;">
+                ✅ {{ message }}
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
         <h2 style="margin: 0; border: none; padding: 0;">📅 Mis Citas Médicas</h2>
-        <div>
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <a href="{% url 'editar_perfil' %}" class="btn-nueva" style="background: #95a5a6;">⚙️ Ajustes</a>
             <a href="{% url 'solicitar_cita' %}" class="btn-nueva">+ Nueva Cita</a>
             <form action="{% url 'logout' %}" method="post" style="display: inline;">
                 {% csrf_token %}
-                <button type="submit" style="background: none; border: none; color: #e74c3c; cursor: pointer; font-size: 0.9em; margin-left: 15px; font-family: inherit;">Cerrar Sesión</button>
+                <button type="submit" style="background: none; border: none; color: #e74c3c; cursor: pointer; font-size: 0.9em; margin-left: 5px; font-family: inherit;">Cerrar Sesión</button>
             </form>
         </div>
     </div>
+
+    <!-- Bloque de datos del perfil (V33) -->
+    <div style="background: #f8f9fa; padding: 10px 20px; border-radius: 8px; font-size: 0.85em; color: #7f8c8d; margin-bottom: 20px; display: flex; gap: 20px; border-left: 4px solid #3498db;">
+        <span>📱 <strong>Teléfono:</strong> {{ request.user.paciente.telefono }}</span>
+        <span>🕒 <strong>Turno Preferido:</strong> {{ request.user.paciente.get_preferencia_turno_display }}</span>
+    </div>
+
     <hr style="border: 0; border-top: 2px solid #eee; margin-bottom: 20px;">
 
     {% if propuesta %}
