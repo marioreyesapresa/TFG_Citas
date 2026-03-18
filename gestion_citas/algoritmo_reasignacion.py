@@ -86,13 +86,25 @@ def iniciar_reasignacion(cita_cancelada):
             print(f"   ❌ Descartado {paciente}: Ya tiene cita ese día.")
             continue
 
-        # --- REGLA E: Evitar saturación de propuestas ---
-        ya_tiene_propuesta = PropuestaReasignacion.objects.filter(
-            cita_original__paciente=paciente,
+        # --- REGLA E: Filtros de Propuestas Previas ---
+        # 1. No volver a ofrecerle el MISMO hueco si ya se le ofreció antes (Rechazada, Expirada...)
+        ya_se_le_ofrecio_este_hueco = PropuestaReasignacion.objects.filter(
+            paciente=paciente,
+            hueco=cita_cancelada
+        ).exists()
+
+        if ya_se_le_ofrecio_este_hueco:
+            print(f"   ❌ Descartado {paciente}: Ya se le ofreció este hueco (y lo rechazó o expiró).")
+            continue
+
+        # 2. No abrumar al paciente si ya tiene OTRA propuesta diferente todavía pendiente de que la responda.
+        ya_tiene_propuesta_activa = PropuestaReasignacion.objects.filter(
+            paciente=paciente,
             estado=EstadoPropuesta.PENDIENTE
         ).exists()
 
-        if ya_tiene_propuesta:
+        if ya_tiene_propuesta_activa:
+            print(f"   ❌ Descartado {paciente}: Ya tiene otra propuesta activa pendiente de responder.")
             continue
 
         print(f"   ✅ Candidato: {paciente} | Score: {puntuacion:.2f}")
