@@ -282,7 +282,7 @@ class PropuestaReasignacion(models.Model):
     cita_original = models.ForeignKey(Cita, on_delete=models.CASCADE, related_name='propuestas')
     
     # El hueco libre que le ofrecemos (la Cita liberada/cancelada)
-    hueco = models.OneToOneField(Cita, on_delete=models.CASCADE, related_name='es_propuesta_de', null=True, blank=True)
+    hueco = models.ForeignKey(Cita, on_delete=models.CASCADE, related_name='es_propuesta_de', null=True, blank=True)
     paciente = models.ForeignKey(Paciente, on_delete=models.CASCADE, related_name='propuestas_recibidas', null=True, blank=True)
     
     # Control de tiempos (R8 - TTL)
