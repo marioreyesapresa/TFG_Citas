@@ -1,4 +1,5 @@
 from django.db import models
+from django.db.models import Q
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 import datetime
@@ -282,7 +283,7 @@ class PropuestaReasignacion(models.Model):
     cita_original = models.ForeignKey(Cita, on_delete=models.CASCADE, related_name='propuestas')
     
     # El hueco libre que le ofrecemos (la Cita liberada/cancelada)
-    hueco = models.OneToOneField(Cita, on_delete=models.CASCADE, related_name='es_propuesta_de', null=True, blank=True)
+    hueco = models.ForeignKey(Cita, on_delete=models.CASCADE, related_name='es_propuesta_de', null=True, blank=True)
     paciente = models.ForeignKey(Paciente, on_delete=models.CASCADE, related_name='propuestas_recibidas', null=True, blank=True)
     
     # Control de tiempos (R8 - TTL)
@@ -294,6 +295,15 @@ class PropuestaReasignacion(models.Model):
         choices=EstadoPropuesta.choices, 
         default=EstadoPropuesta.PENDIENTE
     )
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['hueco'],
+                condition=Q(estado='PENDIENTE'),
+                name='unique_pending_propuesta_per_hueco',
+            ),
+        ]
 
     def __str__(self):
         # Protegemos el print por si el hueco es nulo al crearla en el panel admin temporalmente
