@@ -1,6 +1,7 @@
 import datetime
 from datetime import datetime, timedelta
 from django.utils import timezone
+from django.core.mail import send_mail
 from .models import Cita, EstadoCita, PropuestaReasignacion, Turno, EstadoPropuesta, ConfiguracionReasignacion, Notificacion
 
 # TIEMPO LÍMITE PARA RESPONDER (Requisito R8)
@@ -117,11 +118,29 @@ def iniciar_reasignacion(cita_cancelada):
         # Pero según tu petición, simplemente las nuevas propuestas son las que gestionan el flujo.
 
         # CREAR NOTIFICACIÓN PERSISTENTE (Novedad V25)
+        mensaje_notificacion = f"¡Buenas noticias! Se ha liberado un hueco con el Dr/a. {medico.user.last_name} para el día {fecha_hueco.strftime('%d/%m/%Y')} a las {hora_hueco.strftime('%H:%M')}. ¿Quieres adelantar tu cita?"
+
         Notificacion.objects.create(
             paciente=mejor_candidato.paciente,
             propuesta=propuesta,
-            mensaje=f"¡Buenas noticias! Se ha liberado un hueco con el Dr/a. {medico.user.last_name} para el día {fecha_hueco.strftime('%d/%m/%Y')} a las {hora_hueco.strftime('%H:%M')}. ¿Quieres adelantar tu cita?"
+            mensaje=mensaje_notificacion
         )
+        
+        # ENVIAR CORREO ELECTRÓNICO (Requisito R7 y R15)
+        email_destino = mejor_candidato.paciente.user.email
+        
+        if email_destino:
+            send_mail(
+                subject='Nueva Propuesta de Cita Médica (Adelanto disponible)',
+                message=f"Hola {mejor_candidato.paciente.user.first_name},\n\n{mensaje_notificacion}\n\nPor favor, entra en tu panel de citas desde la web para Aceptar o Rechazar esta propuesta antes de las próximas {HORAS_TTL} horas.\n\nGracias,\nEl equipo del Centro de Salud.",
+                from_email='noreply@tfg-citas.com',
+                recipient_list=[email_destino],
+                fail_silently=False,
+            )
+            print(f"📧 EMAIL ENVIADO a {email_destino}")
+        else:
+            print(f"⚠️ MOTOR: El paciente {mejor_candidato.paciente} no tiene email asociado. Solo se envió notificación web.")
+
         print("📨 MOTOR: Propuesta y Notificación creadas con éxito.")
     else:
         print("🤷 MOTOR: No hay candidatos aptos.")
