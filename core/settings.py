@@ -150,9 +150,21 @@ EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'tfgcitas@gmail.com'
-# IMPORTANTE: Reemplaza esto por tu "Contraseña de Aplicación" de 16 letras de Google
-EMAIL_HOST_PASSWORD = 'oiblrbskrvzyguqv' 
+
+# EVITAR FILTRACIONES EN GITHUB (Epic 3 - Seguridad)
+# Cargamos la contraseña desde un archivo .env local (excluido en .gitignore)
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
+
+# Mini-helper para leer .env sin dependencias externas si existe
+dotenv_path = os.path.join(BASE_DIR, '.env')
+if os.path.exists(dotenv_path):
+    with open(dotenv_path) as f:
+        for line in f:
+            if line.startswith('EMAIL_HOST_PASSWORD='):
+                EMAIL_HOST_PASSWORD = line.split('=', 1)[1].strip()
+
 DEFAULT_FROM_EMAIL = 'tfgcitas@gmail.com'
+
 
 
 # NOTA: Cuando pases a producción (ej. con Gmail), comenta la línea anterior y usa esto:
