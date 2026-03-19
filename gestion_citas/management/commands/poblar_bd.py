@@ -123,6 +123,7 @@ class Command(BaseCommand):
             u = User.objects.create_user(
                 username=f'paciente_{clean_nombre_p}{i}',
                 password='password123',
+                email=f'tfgcitas+paciente{i}@gmail.com', # Todo llega a tfgcitas@gmail.com
                 first_name=nombre_p,
                 last_name=apellido_p
             )

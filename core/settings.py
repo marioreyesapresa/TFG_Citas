@@ -142,7 +142,18 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # CONFIGURACIÓN DE CORREO ELECTRÓNICO (R7, R15)
 # ==========================================
 # Para desarrollo, imprimimos los emails en la consola para depurar fácilmente:
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+# EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
+# ACTIVANDO REDIRECCIÓN SMTP REAL PARA LA DEFENSA (Epic 3)
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'tfgcitas@gmail.com'
+# IMPORTANTE: Reemplaza esto por tu "Contraseña de Aplicación" de 16 letras de Google
+EMAIL_HOST_PASSWORD = 'TU_CONTRASEÑA_DE_APLICACION_AQUÍ' 
+DEFAULT_FROM_EMAIL = 'tfgcitas@gmail.com'
+
 
 # NOTA: Cuando pases a producción (ej. con Gmail), comenta la línea anterior y usa esto:
 # EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
