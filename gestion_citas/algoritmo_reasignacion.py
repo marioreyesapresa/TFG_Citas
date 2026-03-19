@@ -1,8 +1,24 @@
 import datetime
 from datetime import datetime, timedelta
+import logging
 from django.utils import timezone
-from django.core.mail import send_mail
+from django.conf import settings
+from django.core.mail import EmailMultiAlternatives
+from django.template.loader import render_to_string
 from .models import Cita, EstadoCita, PropuestaReasignacion, Turno, EstadoPropuesta, ConfiguracionReasignacion, Notificacion
+
+logger = logging.getLogger(__name__)
+
+def _mask_email(email):
+    """Devuelve una versión enmascarada de un email para logs (evita exponer PII completa)."""
+    if not email:
+        return ""
+    try:
+        local, domain = email.split("@", 1)
+    except ValueError:
+        return "***"
+    masked_local = local[0] + "***" + local[-1] if len(local) > 2 else "*" * len(local)
+    return f"{masked_local}@{domain}"
 
 # TIEMPO LÍMITE PARA RESPONDER (Requisito R8)
 HORAS_TTL = 24 
@@ -138,18 +154,38 @@ def iniciar_reasignacion(cita_cancelada):
             mensaje=mensaje_notificacion
         )
         
-        # ENVIAR CORREO ELECTRÓNICO (Requisito R7 y R15)
+        # ENVIAR CORREO ELECTRÓNICO EN FORMATO HTML PREMIUM (Requisito R7 y R15)
         email_destino = mejor_candidato.paciente.user.email
         
         if email_destino:
-            send_mail(
-                subject='Nueva Propuesta de Cita Médica (Adelanto disponible)',
-                message=f"Hola {mejor_candidato.paciente.user.first_name},\n\n{mensaje_notificacion}\n\nPor favor, entra en tu panel de citas desde la web para Aceptar o Rechazar esta propuesta antes de las próximas {HORAS_TTL} horas.\n\nGracias,\nEl equipo del Centro de Salud.",
+            # Dominio para URLs absolutas en el correo
+            dominio = getattr(settings, "SITE_BASE_URL", "http://127.0.0.1:8000")
+            
+            contexto = {
+                'paciente_nombre': mejor_candidato.paciente.user.first_name,
+                'medico_nombre': medico.user.last_name,
+                'fecha': fecha_hueco.strftime('%d/%m/%Y'),
+                'hora': hora_hueco.strftime('%H:%M'),
+                'horas_ttl': HORAS_TTL,
+                'propuesta': propuesta,
+                'dominio': dominio
+            }
+            
+            html_content = render_to_string('gestion_citas/emails/propuesta_mail.html', contexto)
+            text_content = f"Hola {mejor_candidato.paciente.user.first_name},\n\n{mensaje_notificacion}\n\nEntra en {dominio} para gestionarla."
+            
+            correo = EmailMultiAlternatives(
+                subject='✨ Nueva Propuesta de Adelanto de Cita Disponible',
+                body=text_content,
                 from_email='noreply@tfg-citas.com',
-                recipient_list=[email_destino],
-                fail_silently=False,
+                to=[email_destino]
             )
-            print(f"📧 EMAIL ENVIADO a {email_destino}")
+            correo.attach_alternative(html_content, "text/html")
+            correo.send(fail_silently=False)
+            
+            masked_email = _mask_email(email_destino)
+            print(f"📧 EMAIL HTML PREMIUM ENVIADO a {masked_email}")
+            logger.info(f"EMAIL HTML PREMIUM enviado a {masked_email}")
         else:
             print(f"⚠️ MOTOR: El paciente {mejor_candidato.paciente} no tiene email asociado. Solo se envió notificación web.")
 

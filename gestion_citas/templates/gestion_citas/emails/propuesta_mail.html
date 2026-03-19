@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Nueva Propuesta de Cita Médica</title>
+    <!-- Incluimos en línea la mayoría del CSS crítico para evitar que Gmail y Outlook lo corten -->
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f1f5f9; margin: 0; padding: 20px; color: #334155; }
+        .container { max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); overflow: hidden; border-top: 5px solid #0ea5e9; }
+        .header { background-color: #ffffff; padding: 30px 40px; text-align: center; border-bottom: 1px solid #e2e8f0; }
+        .header h1 { color: #0369a1; margin: 0; font-size: 24px; font-weight: 600; }
+        .content { padding: 40px; line-height: 1.6; font-size: 16px; }
+        .highlight-box { background-color: #f0f9ff; border-left: 4px solid #0284c7; padding: 20px; margin: 25px 0; border-radius: 0 8px 8px 0; }
+        .highlight-box p { margin: 8px 0; font-size: 16px; }
+        .highlight-box strong { color: #0c4a6e; }
+        .warning-text { color: #e11d48; font-size: 14px; background-color: #fff1f2; padding: 10px 15px; border-radius: 6px; display: inline-block; width: 100%; box-sizing: border-box; }
+        .buttons-container { margin-top: 35px; text-align: center; }
+        .btn { display: inline-block; padding: 14px 28px; text-decoration: none; font-weight: 600; border-radius: 6px; margin: 10px 5px; font-size: 15px; transition: all 0.2s; }
+        .btn-accept { background-color: #10b981; color: #ffffff !important; border: 1px solid #059669; }
+        .btn-reject { background-color: #ffffff; color: #ef4444 !important; border: 1px solid #ef4444; }
+        .footer { background-color: #f8fafc; padding: 20px; text-align: center; font-size: 13px; color: #64748b; border-top: 1px solid #e2e8f0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🗓️ Nuevo Adelanto de Cita</h1>
+        </div>
+        
+        <div class="content">
+            <p>Hola <strong>{{ paciente_nombre }}</strong>,</p>
+            <p>¡Tenemos muy buenas noticias! Debido a una cancelación de última hora, nuestro motor de inteligencia ha detectado un hueco libre que coincide perfectamente con tus preferencias clínicas.</p>
+            
+            <p>Se te ofrece la oportunidad de adelantar tu cita a la siguiente fecha:</p>
+            
+            <div class="highlight-box">
+                <p><strong>👨‍⚕️ Especialista:</strong> Dr/a. {{ medico_nombre }}</p>
+                <p><strong>📅 Nueva Fecha:</strong> {{ fecha }}</p>
+                <p><strong>🕒 Nueva Hora:</strong> {{ hora }}</p>
+            </div>
+
+            <div class="warning-text">
+                <strong>⏳ Atención:</strong> Disponemos de una alta demanda. Tienes un límite de <strong>{{ horas_ttl }} horas</strong> para aceptar esta propuesta antes de que sea cedida al siguiente paciente en nuestra lista de espera.
+            </div>
+
+            <div class="buttons-container">
+                <!-- Enlaces absolutos inyectados por el motor -->
+                <a href="{{ dominio }}{% url 'aceptar_propuesta' propuesta.id %}" class="btn btn-accept">✅ Confirmar Adelanto</a>
+                <a href="{{ dominio }}{% url 'rechazar_propuesta' propuesta.id %}" class="btn btn-reject">❌ Rechazar (Mantener mi cita actual)</a>
+            </div>
+            
+            <p style="text-align: center; margin-top: 25px; font-size: 13px; color: #94a3b8;">
+                Si los botones no funcionan por protección de correo, entra en tu panel privado: <code>{{ dominio }}</code>
+            </p>
+        </div>
+        
+        <div class="footer">
+            <p>Plataforma de Gestión Inteligente de Citas Médicas<br>Servicio de Admisión del Hospital</p>
+        </div>
+    </div>
+</body>
+</html>
