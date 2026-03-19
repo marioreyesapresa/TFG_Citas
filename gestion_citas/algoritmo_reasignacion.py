@@ -138,18 +138,39 @@ def iniciar_reasignacion(cita_cancelada):
             mensaje=mensaje_notificacion
         )
         
-        # ENVIAR CORREO ELECTRÓNICO (Requisito R7 y R15)
+        # ENVIAR CORREO ELECTRÓNICO EN FORMATO HTML PREMIUM (Requisito R7 y R15)
         email_destino = mejor_candidato.paciente.user.email
         
         if email_destino:
-            send_mail(
-                subject='Nueva Propuesta de Cita Médica (Adelanto disponible)',
-                message=f"Hola {mejor_candidato.paciente.user.first_name},\n\n{mensaje_notificacion}\n\nPor favor, entra en tu panel de citas desde la web para Aceptar o Rechazar esta propuesta antes de las próximas {HORAS_TTL} horas.\n\nGracias,\nEl equipo del Centro de Salud.",
+            from django.template.loader import render_to_string
+            from django.core.mail import EmailMultiAlternatives
+            
+            # Dominio para URLs absolutas en el correo (Para DEMO)
+            dominio = 'http://127.0.0.1:8000'
+            
+            contexto = {
+                'paciente_nombre': mejor_candidato.paciente.user.first_name,
+                'medico_nombre': medico.user.last_name,
+                'fecha': fecha_hueco.strftime('%d/%m/%Y'),
+                'hora': hora_hueco.strftime('%H:%M'),
+                'horas_ttl': HORAS_TTL,
+                'propuesta': propuesta,
+                'dominio': dominio
+            }
+            
+            html_content = render_to_string('gestion_citas/emails/propuesta_mail.html', contexto)
+            text_content = f"Hola {mejor_candidato.paciente.user.first_name},\n\n{mensaje_notificacion}\n\nEntra en {dominio} para gestionarla."
+            
+            correo = EmailMultiAlternatives(
+                subject='✨ Nueva Propuesta de Adelanto de Cita Disponible',
+                body=text_content,
                 from_email='noreply@tfg-citas.com',
-                recipient_list=[email_destino],
-                fail_silently=False,
+                to=[email_destino]
             )
-            print(f"📧 EMAIL ENVIADO a {email_destino}")
+            correo.attach_alternative(html_content, "text/html")
+            correo.send(fail_silently=False)
+            
+            print(f"📧 EMAIL HTML PREMIUM ENVIADO a {email_destino}")
         else:
             print(f"⚠️ MOTOR: El paciente {mejor_candidato.paciente} no tiene email asociado. Solo se envió notificación web.")
 
