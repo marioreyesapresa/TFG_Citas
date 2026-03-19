@@ -1,8 +1,24 @@
 import datetime
 from datetime import datetime, timedelta
+import logging
 from django.utils import timezone
-from django.core.mail import send_mail
+from django.conf import settings
+from django.core.mail import EmailMultiAlternatives
+from django.template.loader import render_to_string
 from .models import Cita, EstadoCita, PropuestaReasignacion, Turno, EstadoPropuesta, ConfiguracionReasignacion, Notificacion
+
+logger = logging.getLogger(__name__)
+
+def _mask_email(email):
+    """Devuelve una versión enmascarada de un email para logs (evita exponer PII completa)."""
+    if not email:
+        return ""
+    try:
+        local, domain = email.split("@", 1)
+    except ValueError:
+        return "***"
+    masked_local = local[0] + "***" + local[-1] if len(local) > 2 else "*" * len(local)
+    return f"{masked_local}@{domain}"
 
 # TIEMPO LÍMITE PARA RESPONDER (Requisito R8)
 HORAS_TTL = 24 
@@ -142,11 +158,8 @@ def iniciar_reasignacion(cita_cancelada):
         email_destino = mejor_candidato.paciente.user.email
         
         if email_destino:
-            from django.template.loader import render_to_string
-            from django.core.mail import EmailMultiAlternatives
-            
-            # Dominio para URLs absolutas en el correo (Para DEMO)
-            dominio = 'http://127.0.0.1:8000'
+            # Dominio para URLs absolutas en el correo
+            dominio = getattr(settings, "SITE_BASE_URL", "http://127.0.0.1:8000")
             
             contexto = {
                 'paciente_nombre': mejor_candidato.paciente.user.first_name,
@@ -170,7 +183,9 @@ def iniciar_reasignacion(cita_cancelada):
             correo.attach_alternative(html_content, "text/html")
             correo.send(fail_silently=False)
             
-            print(f"📧 EMAIL HTML PREMIUM ENVIADO a {email_destino}")
+            masked_email = _mask_email(email_destino)
+            print(f"📧 EMAIL HTML PREMIUM ENVIADO a {masked_email}")
+            logger.info(f"EMAIL HTML PREMIUM enviado a {masked_email}")
         else:
             print(f"⚠️ MOTOR: El paciente {mejor_candidato.paciente} no tiene email asociado. Solo se envió notificación web.")
 
