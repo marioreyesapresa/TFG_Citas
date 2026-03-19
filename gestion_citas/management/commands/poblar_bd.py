@@ -77,7 +77,7 @@ class Command(BaseCommand):
             clean_nombre = unicodedata.normalize('NFD', nombre).encode('ascii', 'ignore').decode('utf-8').lower().replace(' ', '')
             
             u = User.objects.create_user(
-                username=f'medico_{clean_nombre}{i}',
+                username=f'medico_{clean_nombre}',
                 password='password123',
                 first_name=nombre,
                 last_name=apellido
@@ -121,7 +121,7 @@ class Command(BaseCommand):
             clean_nombre_p = unicodedata.normalize('NFD', nombre_p).encode('ascii', 'ignore').decode('utf-8').lower().replace(' ', '')
 
             u = User.objects.create_user(
-                username=f'paciente_{clean_nombre_p}{i}',
+                username=f'paciente_{clean_nombre_p}',
                 password='password123',
                 email=f'tfgcitas+paciente{i}@gmail.com', # Todo llega a tfgcitas@gmail.com
                 first_name=nombre_p,

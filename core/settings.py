@@ -151,7 +151,7 @@ EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'tfgcitas@gmail.com'
 # IMPORTANTE: Reemplaza esto por tu "Contraseña de Aplicación" de 16 letras de Google
-EMAIL_HOST_PASSWORD = 'TU_CONTRASEÑA_DE_APLICACION_AQUÍ' 
+EMAIL_HOST_PASSWORD = 'oiblrbskrvzyguqv' 
 DEFAULT_FROM_EMAIL = 'tfgcitas@gmail.com'
 
 
