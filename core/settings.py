@@ -16,7 +16,7 @@ SECRET_KEY = 'django-insecure--0o*o#_p!l-d&a@ovw#x4352@fe!4gh%o^=$d!%j8=wptkj0fe
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['*', 'tfg-citas-791788503447.europe-west1.run.app']
+ALLOWED_HOSTS = ['*']
 
 # Esta es la línea clave para quitar el error "Prohibido (403)"
 CSRF_TRUSTED_ORIGINS = ['https://tfg-citas-791788503447.europe-west1.run.app']
@@ -174,3 +174,9 @@ DEFAULT_FROM_EMAIL = 'tfgcitas@gmail.com'
 # EMAIL_USE_TLS = True
 # EMAIL_HOST_USER = 'tu_correo@gmail.com'
 # EMAIL_HOST_PASSWORD = 'tu_contraseña_de_aplicacion'
+
+# ==========================================
+# CONFIGURACIÓN DE ARCHIVOS ESTÁTICOS (PRODUCCIÓN)
+# ==========================================
+STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
