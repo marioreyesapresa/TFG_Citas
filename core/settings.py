@@ -154,14 +154,19 @@ EMAIL_HOST_USER = 'tfgcitas@gmail.com'
 # EVITAR FILTRACIONES EN GITHUB (Epic 3 - Seguridad)
 # Cargamos la contraseña desde un archivo .env local (excluido en .gitignore)
 EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
+SITE_BASE_URL = os.environ.get('SITE_BASE_URL', 'http://127.0.0.1:8000')
 
 # Mini-helper para leer .env sin dependencias externas si existe
 dotenv_path = os.path.join(BASE_DIR, '.env')
 if os.path.exists(dotenv_path):
     with open(dotenv_path) as f:
         for line in f:
-            if line.startswith('EMAIL_HOST_PASSWORD='):
-                EMAIL_HOST_PASSWORD = line.split('=', 1)[1].strip()
+            line_strip = line.strip()
+            if line_strip.startswith('EMAIL_HOST_PASSWORD='):
+                EMAIL_HOST_PASSWORD = line_strip.split('=', 1)[1]
+            elif line_strip.startswith('SITE_BASE_URL='):
+                SITE_BASE_URL = line_strip.split('=', 1)[1]
+
 
 DEFAULT_FROM_EMAIL = 'tfgcitas@gmail.com'
 
