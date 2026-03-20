@@ -6,6 +6,10 @@ from ..models import PropuestaReasignacion, EstadoPropuesta, Notificacion
 
 @login_required
 def aceptar_propuesta(request, propuesta_id):
+    if not hasattr(request.user, 'paciente'):
+        # Si es admin o médico, redirigimos al dashboard
+        return redirect('dashboard')
+        
     propuesta = get_object_or_404(PropuestaReasignacion, id=propuesta_id, cita_original__paciente=request.user.paciente)
     if propuesta.estado == EstadoPropuesta.PENDIENTE and propuesta.fecha_limite > timezone.now():
         cita = propuesta.cita_original
@@ -18,8 +22,12 @@ def aceptar_propuesta(request, propuesta_id):
 
 @login_required
 def rechazar_propuesta(request, propuesta_id):
+    if not hasattr(request.user, 'paciente'):
+        return redirect('dashboard')
+        
     propuesta = get_object_or_404(PropuestaReasignacion, id=propuesta_id, cita_original__paciente=request.user.paciente)
     if propuesta.estado == EstadoPropuesta.PENDIENTE:
+
         propuesta.estado = EstadoPropuesta.RECHAZADA
         propuesta.save()
         
