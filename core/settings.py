@@ -128,6 +128,7 @@ JAZZMIN_SETTINGS = {
     # ---> ESTO FUERZA A QUE TU CREADOR DE HORARIOS NO TENGA PESTAÑAS <---
     "changeform_format_overrides": {
         "gestion_citas.gestionhorario": "single",
+        "auth.user": "single",  # Desactiva pestañas para que salgan todos los campos de golpe
     },
 }
 
