@@ -56,8 +56,8 @@
                 }
 
                 $horaSelect.prop('disabled', true);
-                var partes = fechaStr.split('/');
-                var fechaISO = partes[2] + '-' + partes[1] + '-' + partes[0];
+                // Con Flatpickr en altInput, fechaStr ya viene en ISO (Y-m-d) desde el input real
+                var fechaISO = fechaStr;
 
                 $.getJSON(urlHoras, {medico: medicoId, fecha: fechaISO}, function(data) {
                     var valActualPre = $originalHoraInput.val();
@@ -108,8 +108,9 @@
 
                 fpInstance = flatpickr("#id_fecha", {
                     locale: "es",
-                    dateFormat: "d/m/Y",
-                    altFormat: "Y-m-d",
+                    dateFormat: "Y-m-d",        // Valor real en formato ISO para Django
+                    altInput: true,             // Campo alternativo para presentación
+                    altFormat: "d/m/Y",         // Formato legible para el usuario
                     allowInput: true,
                     minDate: "today",
                     disable: [

@@ -181,11 +181,16 @@ def iniciar_reasignacion(cita_cancelada):
                 to=[email_destino]
             )
             correo.attach_alternative(html_content, "text/html")
-            correo.send(fail_silently=False)
-            
-            masked_email = _mask_email(email_destino)
-            print(f"📧 EMAIL HTML PREMIUM ENVIADO a {masked_email}")
-            logger.info(f"EMAIL HTML PREMIUM enviado a {masked_email}")
+            try:
+                correo.send(fail_silently=False)
+                masked_email = _mask_email(email_destino)
+                print(f"📧 EMAIL ENVIADO a {masked_email}")
+                logger.info(f"EMAIL HTML PREMIUM enviado a {masked_email}")
+            except Exception:
+                masked_email = _mask_email(email_destino)
+                print(f"⚠️ ERROR al enviar EMAIL a {masked_email}. Se continúa sin interrumpir la operación.")
+                logger.error("Error al enviar EMAIL a %s", masked_email, exc_info=True)
+
         else:
             print(f"⚠️ MOTOR: El paciente {mejor_candidato.paciente} no tiene email asociado. Solo se envió notificación web.")
 
