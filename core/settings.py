@@ -49,7 +49,7 @@ ROOT_URLCONF = 'core.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [os.path.join(BASE_DIR, 'templates')],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -91,9 +91,9 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # CONFIGURACIÓN DE LOGIN
-LOGIN_URL = '/'          # Si intentan entrar sin permiso, los manda al login
-LOGIN_REDIRECT_URL = 'dashboard'  # Al entrar bien, los manda al distribuidor
-LOGOUT_REDIRECT_URL = '/'         # Al salir, vuelven al login
+LOGIN_URL = '/'
+LOGIN_REDIRECT_URL = 'dashboard'
+LOGOUT_REDIRECT_URL = 'login'
 
 # ==========================================
 # CONFIGURACIÓN DE JAZZMIN (TEMA VISUAL)
@@ -134,3 +134,43 @@ JAZZMIN_SETTINGS = {
 JAZZMIN_UI_TWEAKS = {
     "theme": "flatly",   
 }
+
+# Clave primaria por defecto para modelos
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# ==========================================
+# CONFIGURACIÓN DE CORREO ELECTRÓNICO (R7, R15)
+# ==========================================
+# Para desarrollo, imprimimos los emails en la consola para depurar fácilmente:
+# EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
+# ACTIVANDO REDIRECCIÓN SMTP REAL PARA LA DEFENSA (Epic 3)
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'tfgcitas@gmail.com'
+
+# EVITAR FILTRACIONES EN GITHUB (Epic 3 - Seguridad)
+# Cargamos la contraseña desde un archivo .env local (excluido en .gitignore)
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
+
+# Mini-helper para leer .env sin dependencias externas si existe
+dotenv_path = os.path.join(BASE_DIR, '.env')
+if os.path.exists(dotenv_path):
+    with open(dotenv_path) as f:
+        for line in f:
+            if line.startswith('EMAIL_HOST_PASSWORD='):
+                EMAIL_HOST_PASSWORD = line.split('=', 1)[1].strip()
+
+DEFAULT_FROM_EMAIL = 'tfgcitas@gmail.com'
+
+
+
+# NOTA: Cuando pases a producción (ej. con Gmail), comenta la línea anterior y usa esto:
+# EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+# EMAIL_HOST = 'smtp.gmail.com'
+# EMAIL_PORT = 587
+# EMAIL_USE_TLS = True
+# EMAIL_HOST_USER = 'tu_correo@gmail.com'
+# EMAIL_HOST_PASSWORD = 'tu_contraseña_de_aplicacion'

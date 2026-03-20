@@ -1,0 +1,99 @@
+{% extends "admin/change_form.html" %}
+{% load static %}
+
+{% block extrahead %}
+    {{ block.super }}
+    <style>
+        /* MARCA VISUAL V13 */
+        .card-title, .breadcrumb-item.active { color: #007bff !important; font-weight: bold !important; }
+        .card-header { border-bottom: 5px solid #007bff !important; }
+        
+        #id_especialidad, #id_centro, #id_medico {
+            border-left: 10px solid #007bff !important;
+        }
+    </style>
+    <script>
+    (function($) {
+        'use strict';
+        
+        $(function() {
+            console.log("CITAS V13: Motor iniciado.");
+
+            // URLs dinámicas inyectadas por Django
+            var urlCentros = "{% url 'ajax_cargar_centros_esp' %}";
+            var urlMedicos = "{% url 'ajax_cargar_medicos_esp_centro' %}";
+
+            function limpiar($el) {
+                $el.empty().append('<option value="">---------</option>').val('').trigger('change.select2');
+            }
+
+            // Detector de Especialidad
+            $(document).on('change', '#id_especialidad', function() {
+                var eid = $(this).val();
+                console.log("CITAS V13: Cambio Esp -> " + eid);
+                
+                var $c = $('#id_centro');
+                var $m = $('#id_medico');
+                
+                limpiar($c);
+                limpiar($m);
+
+                if (eid && eid !== "") {
+                    $.ajax({
+                        url: urlCentros,
+                        data: { 'especialidad_id': eid },
+                        dataType: 'json',
+                        success: function(data) {
+                            console.log("CITAS V13: Success Centros -> " + data.centros.length);
+                            if (data.centros.length === 0) {
+                                alert("Atencion: El servidor dice que no hay centros para esta especialidad.");
+                            }
+                            $.each(data.centros, function(i, item) {
+                                $c.append($('<option>', { value: item.id, text: item.nombre }));
+                            });
+                            $c.trigger('change.select2');
+                        },
+                        error: function(xhr, status, error) {
+                            alert("ERROR AJAX CENTROS: " + status + " - " + error);
+                        }
+                    });
+                }
+            });
+
+            // Detector de Centro
+            $(document).on('change', '#id_centro', function() {
+                var cid = $(this).val();
+                var eid = $('#id_especialidad').val();
+                console.log("CITAS V13: Cambio Centro -> " + cid);
+                
+                var $m = $('#id_medico');
+                limpiar($m);
+
+                if (cid && eid) {
+                    $.ajax({
+                        url: urlMedicos,
+                        data: { 'especialidad_id': eid, 'centro_id': cid },
+                        dataType: 'json',
+                        success: function(data) {
+                            console.log("CITAS V13: Success Medicos -> " + data.medicos.length);
+                            $.each(data.medicos, function(i, item) {
+                                $m.append($('<option>', { value: item.id, text: item.nombre }));
+                            });
+                            $m.trigger('change.select2');
+                        },
+                        error: function(xhr, status, error) {
+                            alert("ERROR AJAX MEDICOS: " + status + " - " + error);
+                        }
+                    });
+                }
+            });
+        });
+
+    })(typeof django !== 'undefined' && django.jQuery ? django.jQuery : (typeof jQuery !== 'undefined' ? jQuery : $));
+    </script>
+{% endblock %}
+
+{% block admin_change_form_document_ready %}
+    {{ block.super }}
+    {{ horarios_json|json_script:"horarios-data" }}
+{% endblock %}

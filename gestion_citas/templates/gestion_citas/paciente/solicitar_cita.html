@@ -10,31 +10,22 @@
         .form-group { margin-bottom: 20px; }
         label { display: block; margin-bottom: 8px; font-weight: bold; color: #2c3e50; }
         select, input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; }
-        button { width: 100%; padding: 15px; background: #2ecc71; color: white; border: none; border-radius: 6px; font-size: 1.1em; cursor: pointer; }
+        button { width: 100%; padding: 15px; background: #2ecc71; color: white; border: none; border-radius: 6px; font-size: 1.1em; cursor: pointer; transition: background 0.3s; }
         button:hover { background: #27ae60; }
+        button:disabled { background: #bdc3c7; cursor: not-allowed; }
         .alert { padding: 10px; background: #e8f4fd; color: #31708f; border-radius: 5px; font-size: 0.9em; margin-bottom: 20px; }
         
-        /* Estilo para el cuadro de error personalizado */
         .error-alerta {
-            background-color: #f8d7da;
-            color: #721c24;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            border: 1px solid #f5c6cb;
-            font-size: 0.95em;
+            background-color: #f8d7da; color: #721c24; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #f5c6cb; font-size: 0.95em;
         }
 
         #info-horario {
-            display: none;
-            background: #eef7ff;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            border: 1px solid #b3d7ff;
+            display: none; background: #eef7ff; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #b3d7ff;
         }
         #info-horario h4 { margin: 0 0 10px 0; color: #004085; font-size: 1em; }
         #lista-horarios { font-size: 0.9em; color: #004085; margin: 0; padding-left: 20px; }
+
+        .loading-text { font-size: 0.8em; color: #7f8c8d; font-style: italic; }
     </style>
 </head>
 <body>
@@ -48,7 +39,7 @@
         </div>
     {% endif %}
 
-    <div class="alert">Selecciona un médico para ver su disponibilidad antes de elegir fecha.</div>
+    <div class="alert">Por favor, selecciona los filtros para encontrar tu médico ideal.</div>
 
     <div id="info-horario">
         <h4>📅 Horarios Disponibles:</h4>
@@ -59,12 +50,26 @@
         {% csrf_token %}
 
         <div class="form-group">
-            <label>Médico / Especialidad</label>
-            <select name="medico" id="id_medico" required>
-                <option value="">-- Selecciona un profesional --</option>
-                {% for m in medicos %}
-                    <option value="{{ m.id }}">{{ m.user.last_name }} ({{ m.especialidad }})</option>
+            <label>Especialidad</label>
+            <select name="especialidad" id="id_especialidad" required>
+                <option value="">-- Elige Especialidad --</option>
+                {% for e in especialidades %}
+                    <option value="{{ e.id }}">{{ e.nombre }}</option>
                 {% endfor %}
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>Centro Médico</label>
+            <select name="centro" id="id_centro" disabled required>
+                <option value="">-- Selecciona Especialidad primero --</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>Médico</label>
+            <select name="medico" id="id_medico" disabled required>
+                <option value="">-- Selecciona Centro primero --</option>
             </select>
         </div>
 
@@ -80,7 +85,7 @@
             </select>
         </div>
 
-        <button type="submit">Confirmar Cita</button>
+        <button type="submit" id="btn-submit">Confirmar Cita</button>
     </form>
 </div>
 
@@ -91,18 +96,26 @@
 {{ resumen_horarios|json_script:"resumen-data" }}
 
 <script>
-    // Leemos el JSON de forma segura (VS Code ya no marcará error aquí)
     const horariosMedicos = JSON.parse(document.getElementById('horarios-data').textContent);
     const resumenHorarios = JSON.parse(document.getElementById('resumen-data').textContent);
     
     let fp; 
 
+    // DOM Elements
+    const espSelect = document.getElementById('id_especialidad');
+    const centroSelect = document.getElementById('id_centro');
     const medicoSelect = document.getElementById('id_medico');
     const calendarioInput = document.getElementById('calendario');
     const horaSelect = document.getElementById('id_hora');
     const infoDiv = document.getElementById('info-horario');
     const listaUl = document.getElementById('lista-horarios');
 
+    // URLs
+    const urlCentros = "/ajax/cargar-centros-esp/";
+    const urlMedicos = "/ajax/cargar-medicos-esp-centro/";
+    const urlHoras = "/ajax/cargar-horas/";
+
+    // Flatpickr inicial (Deshabilitado)
     fp = flatpickr("#calendario", {
         locale: "es",
         minDate: "today",
@@ -111,11 +124,11 @@
         onChange: function(selectedDates, dateStr) {
             const medicoId = medicoSelect.value;
             if (medicoId && dateStr) {
-                fetch(`/ajax/cargar-horas/?medico=${medicoId}&fecha=${dateStr}`)
+                fetch(`${urlHoras}?medico=${medicoId}&fecha=${dateStr}`)
                     .then(response => response.json())
                     .then(data => {
                         horaSelect.innerHTML = '<option value="">-- Elige una hora --</option>';
-                        if (data.horas.length > 0) {
+                        if (data.horas && data.horas.length > 0) {
                             data.horas.forEach(hora => {
                                 const option = document.createElement('option');
                                 option.value = hora;
@@ -132,12 +145,68 @@
         }
     });
 
+    // --- CASCADA 1: ESPECIALIDAD -> CENTRO ---
+    espSelect.addEventListener('change', function() {
+        const eid = this.value;
+        // Reset subniveles
+        centroSelect.innerHTML = '<option value="">Cargando centros...</option>';
+        centroSelect.disabled = true;
+        medicoSelect.innerHTML = '<option value="">-- Selecciona Centro primero --</option>';
+        medicoSelect.disabled = true;
+        resetCalendario();
+
+        if (eid) {
+            fetch(`${urlCentros}?especialidad_id=${eid}`)
+                .then(r => r.json())
+                .then(data => {
+                    centroSelect.innerHTML = '<option value="">-- Elige Centro --</option>';
+                    if (data.centros && data.centros.length > 0) {
+                        data.centros.forEach(c => {
+                            let opt = new Option(c.nombre, c.id);
+                            centroSelect.add(opt);
+                        });
+                        centroSelect.disabled = false;
+                    } else {
+                        centroSelect.innerHTML = '<option value="">Sin centros para esta especialidad</option>';
+                    }
+                });
+        }
+    });
+
+    // --- CASCADA 2: CENTRO -> MÉDICO ---
+    centroSelect.addEventListener('change', function() {
+        const cid = this.value;
+        const eid = espSelect.value;
+        
+        medicoSelect.innerHTML = '<option value="">Cargando médicos...</option>';
+        medicoSelect.disabled = true;
+        resetCalendario();
+
+        if (cid && eid) {
+            fetch(`${urlMedicos}?especialidad_id=${eid}&centro_id=${cid}`)
+                .then(r => r.json())
+                .then(data => {
+                    medicoSelect.innerHTML = '<option value="">-- Elige Médico --</option>';
+                    if (data.medicos && data.medicos.length > 0) {
+                        data.medicos.forEach(m => {
+                            let opt = new Option(m.nombre, m.id);
+                            medicoSelect.add(opt);
+                        });
+                        medicoSelect.disabled = false;
+                    } else {
+                        medicoSelect.innerHTML = '<option value="">Sin médicos disponibles</option>';
+                    }
+                });
+        }
+    });
+
+    // --- CASCADA 3: MÉDICO -> CALENDARIO ---
     medicoSelect.addEventListener('change', function() {
         const medicoId = this.value;
-        horaSelect.disabled = true;
-        horaSelect.innerHTML = '<option value="">Selecciona una fecha</option>';
+        resetCalendario();
         
         if (medicoId) {
+            // Mostrar horarios resumen
             listaUl.innerHTML = '';
             if (resumenHorarios[medicoId]) {
                 resumenHorarios[medicoId].forEach(h => {
@@ -148,11 +217,11 @@
                 infoDiv.style.display = 'block';
             }
 
+            // Habilitar Flatpickr con días permitidos
             calendarioInput.disabled = false;
             calendarioInput.placeholder = "Haz clic para ver días disponibles";
             
             const diasPermitidos = horariosMedicos[medicoId];
-
             fp.set("disable", [
                 function(date) {
                     let day = date.getDay();
@@ -161,12 +230,18 @@
                 }
             ]);
             fp.clear();
-        } else {
-            calendarioInput.disabled = true;
-            infoDiv.style.display = 'none';
-            fp.clear();
         }
     });
+
+    function resetCalendario() {
+        calendarioInput.disabled = true;
+        calendarioInput.placeholder = "Selecciona primero un médico";
+        horaSelect.innerHTML = '<option value="">Selecciona una fecha</option>';
+        horaSelect.disabled = true;
+        infoDiv.style.display = 'none';
+        fp.clear();
+        fp.set("disable", [function(date) { return true; }]);
+    }
 </script>
 
 </body>
