@@ -166,7 +166,8 @@ admin.site.register(PropuestaReasignacion, PropuestaAdmin)
 admin.site.register(Notificacion)
 admin.site.register(ConfiguracionReasignacion)
 class ConsultaMedicaAdmin(admin.ModelAdmin):
-    list_display = ('cita', 'motivo_consulta', 'fecha_creacion')
+    list_display = ('cita', 'motivo_consulta', 'diagnostico_principal', 'fecha_creacion')
+    search_fields = ('motivo_consulta', 'diagnostico_principal', 'cita__paciente__user__last_name')
 
 admin.site.register(ConsultaMedica, ConsultaMedicaAdmin)
 admin.site.register(Receta)
