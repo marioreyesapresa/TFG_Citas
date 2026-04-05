@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Nueva Consulta - Hospital TFG</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background-color: #f4f7f6; padding: 40px; }
+        .container { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); max-width: 700px; margin: auto; }
+        
+        .header { border-bottom: 2px solid #eee; padding-bottom: 15px; margin-bottom: 20px;}
+        h2 { color: #2c3e50; margin: 0;}
+        .info-paciente { background: #e8f4f8; padding: 15px; border-radius: 8px; margin-bottom: 25px; color: #34495e; border-left: 5px solid #3498db; }
+        
+        .form-group { margin-bottom: 20px; }
+        label { display: block; font-weight: bold; margin-bottom: 8px; color: #34495e; }
+        .form-control { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 1em; }
+        .form-control:focus { border-color: #3498db; outline: none; box-shadow: 0 0 5px rgba(52, 152, 219, 0.3); }
+
+        /* Formset de recetas */
+        .receta-form { border: 1px solid #eee; padding: 15px; border-radius: 8px; background: #fafafa; margin-bottom: 15px; }
+        .receta-header { font-weight: bold; color: #7f8c8d; margin-bottom: 10px; border-bottom: 1px solid #eee; padding-bottom: 5px;}
+
+        .btn-submit { background: #27ae60; color: white; border: none; padding: 15px 30px; border-radius: 8px; font-size: 1.1em; font-weight: bold; cursor: pointer; transition: 0.3s; width: 100%; display: block; margin-top: 20px;}
+        .btn-submit:hover { background: #2ecc71; }
+        .btn-cancel { color: #7f8c8d; text-decoration: none; font-size: 0.9em; display: inline-block; margin-top: 15px; }
+
+        .formset-row > div { flex: 1; }
+
+        .btn-add { background: #3498db; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; margin-top: 10px; font-weight: bold; transition: 0.3s; }
+        .btn-add:hover { background: #2980b9; }
+
+        #empty-form-template { display: none; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h2>🛠️ Registrar Nueva Consulta</h2>
+    </div>
+
+    <div class="info-paciente">
+        <strong>Paciente:</strong> {{ cita.paciente.user.first_name }} {{ cita.paciente.user.last_name }}<br>
+        <strong>Cita Original:</strong> {{ cita.fecha|date:"d/m/Y" }} - {{ cita.hora_inicio|time:"H:i" }}<br>
+        <strong>Motivo Original:</strong> <span style="font-style: italic;">{{ cita.get_urgencia_display }}</span>
+    </div>
+
+    <form method="post">
+        {% csrf_token %}
+        
+        <div class="form-group">
+            <label>Motivo de la Consulta:</label>
+            {{ form.motivo_consulta }}
+        </div>
+
+        <div class="form-group">
+            <label>Diagnóstico:</label>
+            {{ form.diagnostico }}
+        </div>
+
+        <div class="form-group">
+            <label>Observaciones de Seguimiento (Opcional):</label>
+            {{ form.observaciones }}
+        </div>
+
+        <h3 style="color: #2c3e50; margin-top: 30px; border-bottom: 1px solid #eee; padding-bottom: 10px;">💊 Recetar Medicación</h3>
+        {{ formset.management_form }}
+        
+        <div id="recetas-container">
+            {% for receta_form in formset %}
+            <div class="receta-form">
+                <div class="receta-header">Fármaco #{{ forloop.counter }}</div>
+                <div class="formset-row">
+                    <div>
+                        <label>Medicamento:</label>
+                        {{ receta_form.medicamento }}
+                    </div>
+                </div>
+                <div class="formset-row" style="margin-top: 10px;">
+                    <div>
+                        <label>Posología:</label>
+                        {{ receta_form.posologia }}
+                    </div>
+                    <div>
+                        <label>Duración:</label>
+                        {{ receta_form.duracion }}
+                    </div>
+                </div>
+                {% if formset.can_delete %}
+                <div style="margin-top: 10px; color: #e74c3c; font-size: 0.85em;">
+                    ¿Eliminar esta receta? {{ receta_form.DELETE }}
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+
+        <button type="button" id="add-receta-btn" class="btn-add">➕ Añadir otro medicamento</button>
+
+        <div id="empty-form-template">
+            <div class="receta-form">
+                <div class="receta-header">Nuevo Fármaco</div>
+                <div class="formset-row">
+                    <div>
+                        <label>Medicamento:</label>
+                        {{ formset.empty_form.medicamento }}
+                    </div>
+                </div>
+                <div class="formset-row" style="margin-top: 10px;">
+                    <div>
+                        <label>Posología:</label>
+                        {{ formset.empty_form.posologia }}
+                    </div>
+                    <div>
+                        <label>Duración:</label>
+                        {{ formset.empty_form.duracion }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <button type="submit" class="btn-submit">✅ Confirmar y Guardar Registro Clínico</button>
+
+        <div style="text-align: center;">
+            <a href="{% url 'perfil_medico' %}" class="btn-cancel">Volver a la Agenda sin guardar</a>
+        </div>
+    </form>
+</div>
+
+<script>
+    document.getElementById('add-receta-btn').addEventListener('click', function() {
+        const container = document.getElementById('recetas-container');
+        const totalForms = document.getElementById('id_recetas-TOTAL_FORMS');
+        const count = parseInt(totalForms.value);
+        
+        const template = document.getElementById('empty-form-template').innerHTML;
+        const newHtml = template.replace(/__prefix__/g, count);
+        
+        const div = document.createElement('div');
+        div.innerHTML = newHtml;
+        container.appendChild(div);
+        
+        totalForms.value = count + 1;
+        
+        // Actualizar el header del nuevo fármaco
+        const header = div.querySelector('.receta-header');
+        if (header) {
+            header.innerText = `Fármaco #${count + 1}`;
+        }
+    });
+</script>
+
+</body>
+</html>

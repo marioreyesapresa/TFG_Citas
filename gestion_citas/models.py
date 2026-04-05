@@ -340,3 +340,26 @@ class ConfiguracionReasignacion(models.Model):
 
     def __str__(self):
         return "Configuración Global del Motor"
+
+# ==========================================
+# 8. MÓDULO CLÍNICO
+# ==========================================
+class ConsultaMedica(models.Model):
+    cita = models.OneToOneField(Cita, on_delete=models.CASCADE, related_name='consulta_medica')
+    motivo_consulta = models.CharField(max_length=255)
+    diagnostico = models.TextField()
+    observaciones = models.TextField(blank=True, null=True)
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Consulta: {self.motivo_consulta} ({self.cita.paciente})"
+
+class Receta(models.Model):
+    consulta = models.ForeignKey(ConsultaMedica, on_delete=models.CASCADE, related_name='recetas')
+    medicamento = models.CharField(max_length=255)
+    posologia = models.CharField(max_length=255)
+    duracion = models.CharField(max_length=255)
+    activo = models.BooleanField(default=True)
+
+    def __str__(self):
+        return f"{self.medicamento} - {self.posologia}"

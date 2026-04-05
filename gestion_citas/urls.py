@@ -31,4 +31,9 @@ urlpatterns = [
     # 6. RUTA PROPIA DEL ADMINISTRATIVO 
    path('perfil-administrativo/', views.perfil_administrativo, name='perfil_administrativo'),
 
+    # 7. MÓDULO CLÍNICO (EPIC 4)
+    path('medico/consulta/<int:cita_id>/', views.crear_consulta, name='crear_consulta'),
+    path('paciente/historial/', views.ver_historial_paciente, name='historial_paciente'),
+    path('medico/historial/<int:paciente_id>/', views.ver_historial_paciente, name='historial_paciente_medico'),
+
 ]

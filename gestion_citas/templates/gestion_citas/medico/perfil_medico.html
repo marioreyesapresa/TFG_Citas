@@ -31,6 +31,11 @@
 
         /* --- AQUÍ ESTÁ EL ARREGLO PARA VS CODE --- */
         .fila-cancelada { opacity: 0.4; background-color: #fafafa; }
+        
+        .btn-accion { padding: 6px 12px; border-radius: 4px; text-decoration: none; font-size: 0.85em; font-weight: bold; margin-bottom: 5px; display: inline-block; text-align: center; width: 100px; }
+        .btn-primario { background: #3498db; color: white; border: 1px solid #2980b9; }
+        .btn-secundario { background: #95a5a6; color: white; border: 1px solid #7f8c8d; }
+        .btn-accion:hover { opacity: 0.8; }
     </style>
 </head>
 <body>
@@ -55,6 +60,7 @@
                     <th>Teléfono</th>
                     <th>Urgencia</th>
                     <th>Estado</th>
+                    <th>Acciones</th>
                 </tr>
             </thead>
             <tbody>
@@ -75,6 +81,19 @@
                         <span class="badge status-{{ cita.estado }}">
                             {{ cita.get_estado_display }}
                         </span>
+                    </td>
+                    <td>
+                        {% if cita.estado != 'X' %}
+                            {% if not cita.consulta_medica %}
+                                <a href="{% url 'crear_consulta' cita.id %}" class="btn-accion btn-primario">+ Consulta</a>
+                            {% else %}
+                                <span style="color: #27ae60; font-size: 0.8em;">✓ Registrada</span>
+                            {% endif %}
+                            <br>
+                            <a href="{% url 'historial_paciente_medico' cita.paciente.id %}" class="btn-accion btn-secundario">Ver Historial</a>
+                        {% else %}
+                            -
+                        {% endif %}
                     </td>
                 </tr>
                 {% endfor %}
