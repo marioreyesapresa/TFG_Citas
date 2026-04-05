@@ -36,5 +36,6 @@ urlpatterns = [
     path('paciente/historial/', views.ver_historial_paciente, name='historial_paciente'),
     path('medico/historial/<int:paciente_id>/', views.ver_historial_paciente, name='historial_paciente_medico'),
     path('clinico/descargar-pdf/<int:consulta_id>/', views.descargar_informe_pdf, name='descargar_informe_pdf'),
+    path('validar/receta/<uuid:token>/', views.validar_receta_publica, name='validar_receta_publica'),
 
 ]

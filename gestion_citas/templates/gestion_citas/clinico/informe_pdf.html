@@ -38,6 +38,10 @@
 
         .signature-area { margin-top: 50px; }
         .signature-box { float: right; width: 200px; text-align: center; border-top: 1px solid #333; padding-top: 5px; font-size: 10px; }
+        
+        .verification-footer { margin-top: 30px; border-top: 2px dashed #ddd; padding-top: 15px; }
+        .qr-section { width: 100px; float: left; margin-right: 20px; }
+        .verify-text { font-size: 9px; color: #777; margin-top: 10px; }
     </style>
 </head>
 <body>
@@ -136,6 +140,22 @@
             Fmdo: Dr/a. {{ consulta.cita.medico.user.last_name }}<br>
             Col N: {{ consulta.cita.medico.numero_colegiado }}
         </div>
+    </div>
+
+    <!-- VERIFICACIÓN QR -->
+    <div class="verification-footer">
+        <div class="qr-section">
+            <img src="data:image/png;base64,{{ qr_code }}" width="100" height="100">
+        </div>
+        <div style="float: left; width: 400px;">
+            <p style="font-weight: bold; font-size: 11px; margin-bottom: 5px; color: #2ecc71;">✓ VERIFICACIÓN DE SEGURIDAD</p>
+            <p class="verify-text">
+                Este documento contiene un código de seguridad único para su validación en oficinas de farmacia y centros colaboradores. 
+                La autenticidad de los fármacos prescritos puede ser verificada escaneando el código adjunto. 
+                Válido solo con firma médica y sello digital del centro.
+            </p>
+        </div>
+        <div style="clear: both;"></div>
     </div>
 
 </body>

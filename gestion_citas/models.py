@@ -3,6 +3,7 @@ from django.db.models import Q
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 import datetime
+import uuid
 from datetime import timedelta
 
 DURACION_CITA = 30
@@ -356,6 +357,9 @@ class ConsultaMedica(models.Model):
     
     diagnostico_principal = models.TextField(blank=True, null=True, help_text="Diagnóstico final o presuntivo")
     tratamiento_pautas = models.TextField(blank=True, null=True, help_text="Medidas generales, derivaciones, reposo...")
+    
+    # Token de seguridad para validación pública (Epic 4.6)
+    token_verificacion = models.UUIDField(default=uuid.uuid4, editable=False, unique=True, null=True)
     
     observaciones = models.TextField(blank=True, null=True, help_text="Notas de control interno")
     fecha_creacion = models.DateTimeField(auto_now_add=True)

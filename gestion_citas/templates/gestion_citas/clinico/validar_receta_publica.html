@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Certificación Digital - Hospital TFG</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f0f7f4; margin: 0; display: flex; align-items: center; justify-content: center; min-height: 100vh; color: #1c1e21; }
+        .card { background: white; max-width: 450px; width: 90%; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); padding: 40px; text-align: center; border-top: 8px solid #2ecc71; }
+        
+        .success-icon { width: 80px; height: 80px; background: #2ecc71; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; color: white; font-size: 40px; animation: scaleIn 0.5s ease-out; }
+        
+        @keyframes scaleIn {
+            0% { transform: scale(0); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        h1 { color: #2ecc71; margin: 0; font-size: 1.6rem; }
+        .status { font-weight: bold; text-transform: uppercase; letter-spacing: 1px; color: #27ae60; margin-bottom: 25px; display: block; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+
+        .data-grid { text-align: left; background: #f8f9fa; padding: 20px; border-radius: 12px; margin-bottom: 25px; }
+        .data-item { margin-bottom: 12px; }
+        .label { font-size: 0.75rem; color: #7f8c8d; text-transform: uppercase; display: block; font-weight: bold; }
+        .value { font-size: 0.95rem; color: #2c3e50; font-weight: 500; }
+
+        .meds-list { background: #e7f3ff; border-left: 4px solid #3498db; padding: 15px; border-radius: 4px; text-align: left; }
+        .meds-title { font-size: 0.8rem; font-weight: bold; color: #3498db; display: block; margin-bottom: 5px; }
+
+        .footer { font-size: 0.75rem; color: #bdc3c7; margin-top: 30px; }
+        .hospital-logo { color: #bdc3c7; font-weight: bold; margin-top: 10px; display: block; }
+
+        /* Estilo Botón */
+        .btn-close { display: block; background: #2c3e50; color: white; text-decoration: none; padding: 12px; border-radius: 8px; font-weight: bold; margin-top: 20px; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <div class="success-icon">✓</div>
+    <h1>{{ consulta.cita.centro.nombre|upper }}</h1>
+    <span class="status">Certificación de Documento Digital</span>
+
+    <div class="data-grid">
+        <div class="data-item">
+            <span class="label">Paciente</span>
+            <div class="value">{{ consulta.cita.paciente.user.get_full_name }}</div>
+        </div>
+        <div class="data-item">
+            <span class="label">Asistencia en</span>
+            <div class="value">{{ consulta.cita.centro.nombre }}</div>
+        </div>
+        <div class="data-item">
+            <span class="label">Fecha de Emisión</span>
+            <div class="value">{{ consulta.fecha_creacion|date:"d/m/Y - H:i" }}</div>
+        </div>
+        <div class="data-item">
+            <span class="label">Médico Responsable</span>
+            <div class="value">Dr/a. {{ consulta.cita.medico.user.last_name }}</div>
+        </div>
+    </div>
+
+    {% if consulta.recetas.all %}
+    <div class="meds-list">
+        <span class="meds-title">📦 Fármacos Prescritos:</span>
+        <ul style="margin: 5px 0; padding-left: 15px; font-size: 0.9rem; color: #2c3e50;">
+            {% for receta in consulta.recetas.all %}
+            <li>{{ receta.medicamento }} ({{ receta.posologia }})</li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+
+    <div class="footer">
+        Esta certificación digital garantiza que el documento físico no ha sido alterado. El ID de verificación único es: 
+        <br><strong>{{ consulta.token_verificacion }}</strong>
+        <span class="hospital-logo">HOSPITAL TFG DIGITAL SYSTEM</span>
+    </div>
+</div>
+
+</body>
+</html>

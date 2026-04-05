@@ -5,6 +5,8 @@ from django.http import HttpResponse
 from django.template.loader import get_template
 from io import BytesIO
 from xhtml2pdf import pisa
+import qrcode
+import base64
 from ..models import Cita, ConsultaMedica, Receta, EstadoCita
 from ..forms import ConsultaForm, RecetaFormSet
 
@@ -75,8 +77,23 @@ def descargar_informe_pdf(request, consulta_id):
         messages.error(request, "No tienes permiso para descargar este informe.")
         return redirect('dashboard')
 
+    # --- Lógica de Generación de QR de Validación (MODO DIOS: URL Dinámica) ---
+    # Usamos reverse para obtener la ruta y build_absolute_uri para que funcione en local y producción
+    from django.urls import reverse
+    url_validacion = request.build_absolute_uri(
+        reverse('validar_receta_publica', kwargs={'token': str(consulta.token_verificacion)})
+    )
+    
+    qr_img = qrcode.make(url_validacion)
+    qr_buffer = BytesIO()
+    qr_img.save(qr_buffer, format='PNG')
+    qr_base64 = base64.b64encode(qr_buffer.getvalue()).decode('utf-8')
+
     template = get_template('gestion_citas/clinico/informe_pdf.html')
-    html = template.render({'consulta': consulta})
+    html = template.render({
+        'consulta': consulta,
+        'qr_code': qr_base64
+    })
     result = BytesIO()
     
     # Generar el PDF
@@ -89,3 +106,10 @@ def descargar_informe_pdf(request, consulta_id):
         return response
     
     return HttpResponse("Error al generar el informe PDF", status=400)
+
+def validar_receta_publica(request, token):
+    # Vista pública para el tribunal/farmacia (Epic 4.6)
+    consulta = get_object_or_404(ConsultaMedica, token_verificacion=token)
+    return render(request, 'gestion_citas/clinico/validar_receta_publica.html', {
+        'consulta': consulta
+    })
