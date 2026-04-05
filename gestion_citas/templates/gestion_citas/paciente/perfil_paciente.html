@@ -70,6 +70,7 @@
         <h2 style="margin: 0; border: none; padding: 0;">📅 Mis Citas Médicas</h2>
         <div style="display: flex; align-items: center; gap: 10px;">
             <a href="{% url 'editar_perfil' %}" class="btn-nueva" style="background: #95a5a6;">⚙️ Ajustes</a>
+            <a href="{% url 'historial_paciente' %}" class="btn-nueva" style="background: #27ae60;">📜 Mi Historial</a>
             <a href="{% url 'solicitar_cita' %}" class="btn-nueva">+ Nueva Cita</a>
             <form action="{% url 'logout' %}" method="post" style="display: inline;">
                 {% csrf_token %}

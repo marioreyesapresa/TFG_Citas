@@ -19,6 +19,9 @@
         .report-title { color: #0056b3; font-size: 1.25rem; font-weight: bold; margin-bottom: 5px; }
         .report-meta { font-size: 0.85rem; color: #586069; }
 
+        .btn-pdf { background: #e74c3c; color: white; text-decoration: none; padding: 6px 12px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; margin-left: 15px; display: inline-block; }
+        .btn-pdf:hover { background: #c0392b; }
+
         .report-body { padding: 30px; display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
         
         /* Secciones de Datos */
@@ -52,9 +55,12 @@
             <!-- CABECERA DEL INFORME -->
             <header class="report-header">
                 <div>
-                    <div class="report-title">{{ consulta.motivo_consulta }}</div>
+                    <div class="report-title">
+                        {{ consulta.motivo_consulta }}
+                        <a href="{% url 'descargar_informe_pdf' consulta.id %}" class="btn-pdf">📄 Descargar PDF</a>
+                    </div>
                     <div class="report-meta">
-                        👤 Atendido por: Dr/a. {{ consulta.cita.medico.user.last_name }} ({{ consulta.cita.medico.especialidad }})
+                        👤 Atendido en: <strong>{{ consulta.cita.centro.nombre }}</strong> por Dr/a. {{ consulta.cita.medico.user.last_name }} ({{ consulta.cita.medico.especialidad }})
                     </div>
                 </div>
                 <div style="text-align: right;">
