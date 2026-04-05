@@ -20,7 +20,7 @@ def perfil_paciente(request):
     paciente = request.user.paciente
     citas = Cita.objects.filter(
         paciente=paciente
-    ).order_by('-fecha', '-hora_inicio')
+    ).select_related('medico__user', 'centro', 'consulta_medica').order_by('-fecha', '-hora_inicio')
 
     ahora = timezone.now()
     PropuestaReasignacion.objects.filter(

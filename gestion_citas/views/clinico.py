@@ -18,6 +18,12 @@ def crear_consulta(request, cita_id):
     
     cita = get_object_or_404(Cita, id=cita_id, medico=request.user.medico)
     
+    # --- Seguridad Extra (Copilot Feedback) ---
+    # No se puede emitir juicio clínico sobre una cita cancelada
+    if cita.estado == EstadoCita.CANCELADA:
+        messages.error(request, "No se puede registrar una consulta sobre una cita cancelada.")
+        return redirect('perfil_medico')
+    
     # Si ya tiene una consulta asociada, redirigimos a verla (o podemos dar error)
     if hasattr(cita, 'consulta_medica'):
         messages.info(request, "Esta cita ya tiene un registro clínico asociado.")
@@ -54,12 +60,20 @@ def crear_consulta(request, cita_id):
 def ver_historial_paciente(request, paciente_id=None):
     # Si el usuario es paciente, solo ve las suyas
     if hasattr(request.user, 'paciente'):
-        consultas = ConsultaMedica.objects.filter(cita__paciente=request.user.paciente).order_by('-fecha_creacion')
+        consultas = ConsultaMedica.objects.filter(
+            cita__paciente=request.user.paciente
+        ).select_related('cita__medico__user', 'cita__centro'
+        ).prefetch_related('recetas'
+        ).order_by('-fecha_creacion')
         return render(request, 'gestion_citas/paciente/historial_paciente.html', {'consultas': consultas})
     
     # Si es médico o administrativo, puede ver las de un paciente específico
     elif hasattr(request.user, 'medico') or hasattr(request.user, 'administrativo'):
-        consultas = ConsultaMedica.objects.filter(cita__paciente_id=paciente_id).order_by('-fecha_creacion')
+        consultas = ConsultaMedica.objects.filter(
+            cita__paciente_id=paciente_id
+        ).select_related('cita__medico__user', 'cita__centro'
+        ).prefetch_related('recetas'
+        ).order_by('-fecha_creacion')
         return render(request, 'gestion_citas/clinico/historial_clinico.html', {'consultas': consultas})
     
     return redirect('dashboard')

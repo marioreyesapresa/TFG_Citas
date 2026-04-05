@@ -5,6 +5,7 @@ from django.views.decorators.http import require_POST
 from ..models import PropuestaReasignacion, EstadoPropuesta, Notificacion
 
 @login_required
+@require_POST
 def aceptar_propuesta(request, propuesta_id):
     if not hasattr(request.user, 'paciente'):
         # Si es admin o médico, redirigimos al dashboard
@@ -21,6 +22,7 @@ def aceptar_propuesta(request, propuesta_id):
     return redirect('perfil_paciente')
 
 @login_required
+@require_POST
 def rechazar_propuesta(request, propuesta_id):
     if not hasattr(request.user, 'paciente'):
         return redirect('dashboard')

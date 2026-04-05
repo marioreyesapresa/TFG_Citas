@@ -68,11 +68,13 @@
                     "{{ consulta.diagnostico_principal|truncatewords:20 }}"
                 </div>
                 
-                {% if consulta.recetas.all %}
+                {% with recipes_count=consulta.recetas.count %}
+                {% if recipes_count %}
                 <div style="font-size: 0.8rem; color: #27ae60; font-weight: 600;">
-                    💊 Contiene {{ consulta.recetas.count }} medicamento(s) recetado(s)
+                    💊 Contiene {{ recipes_count }} medicamento(s) recetado(s)
                 </div>
                 {% endif %}
+                {% endwith %}
             </div>
         </div>
         {% endfor %}

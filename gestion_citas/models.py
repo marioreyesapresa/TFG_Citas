@@ -359,13 +359,19 @@ class ConsultaMedica(models.Model):
     tratamiento_pautas = models.TextField(blank=True, null=True, help_text="Medidas generales, derivaciones, reposo...")
     
     # Token de seguridad para validación pública (Epic 4.6)
-    token_verificacion = models.UUIDField(default=uuid.uuid4, editable=False, unique=True, null=True)
+    token_verificacion = models.UUIDField(default=uuid.uuid4, editable=False, unique=True, null=False)
     
     observaciones = models.TextField(blank=True, null=True, help_text="Notas de control interno")
     fecha_creacion = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return f"Consulta: {self.motivo_consulta} ({self.cita.paciente})"
+
+    def save(self, *args, **kwargs):
+        # Garantía Extra de Integridad (Copilot Feedback)
+        if not self.token_verificacion:
+            self.token_verificacion = uuid.uuid4()
+        super().save(*args, **kwargs)
 
 class Receta(models.Model):
     consulta = models.ForeignKey(ConsultaMedica, on_delete=models.CASCADE, related_name='recetas')
