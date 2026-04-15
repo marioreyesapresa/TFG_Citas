@@ -1,79 +1,74 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Iniciar Sesión - Hospital TFG</title>
-    <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #3498db, #8e44ad); /* Fondo moderno */
-            height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            margin: 0;
-        }
-        .login-card {
-            background: white;
-            padding: 40px;
-            border-radius: 10px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-            width: 100%;
-            max-width: 350px;
-            text-align: center;
-        }
-        .login-card h2 { color: #333; margin-bottom: 20px; }
-        .logo { font-size: 3em; margin-bottom: 10px; }
-        
-        input {
-            width: 100%;
-            padding: 12px;
-            margin: 10px 0;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            box-sizing: border-box; /* Importante para que no se salga del ancho */
-        }
-        
-        button {
-            width: 100%;
-            padding: 12px;
-            background-color: #2ecc71;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            font-size: 1.1em;
-            cursor: pointer;
-            margin-top: 10px;
-        }
-        button:hover { background-color: #27ae60; }
-        
-        .error-msg { color: red; font-size: 0.9em; margin-top: 10px; }
-    </style>
-</head>
-<body>
+{% extends 'gestion_citas/comun/base.html' %}
+{% load static %}
 
+{% block title %}Iniciar Sesión - Hospital TFG{% endblock %}
+
+{% block extra_head %}
+<style>
+    body {
+        background: linear-gradient(135deg, #eff6ff 0%, #e0f2fe 100%);
+        height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 0 !important;
+    }
+    .login-card {
+        background: white;
+        padding: 60px 50px;
+        border-radius: var(--radius-lg);
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.1);
+        width: 100%;
+        max-width: 450px;
+        text-align: center;
+        box-sizing: border-box;
+    }
+    .logo { font-size: 3.5rem; color: var(--primary); margin-bottom: 25px; }
+    .alert { padding: 14px; border-radius: var(--radius-md); margin-bottom: 20px; font-size: 0.9rem; display: flex; align-items: center; gap: 10px; }
+    .alert-info { background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; }
+    .alert-error { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+    .form-group { position: relative; margin-bottom: 25px; text-align: left; }
+    .form-group i { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: var(--text-muted); }
+    .form-group .premium-input { padding-left: 48px; }
+</style>
+{% endblock %}
+
+{% block content %}
     <div class="login-card">
-        <div class="logo">🏥</div>
-        <h2>Portal de Salud</h2>
+        <div class="logo"><i class="fas fa-hospital-user"></i></div>
+        <h2 style="font-size: 1.8rem; font-weight: 800; margin-bottom: 35px;">Área Privada</h2>
+
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i> {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
         
         <form method="post">
             {% csrf_token %}
-            
-            <input type="text" name="username" placeholder="Usuario" required autofocus>
-            <input type="password" name="password" placeholder="Contraseña" required>
-            
-            <button type="submit">Entrar</button>
-            
+            <div class="form-group">
+                <i class="fas fa-user-circle"></i>
+                <input type="text" name="username" class="premium-input" placeholder="Usuario de acceso" required autofocus>
+            </div>
+            <div class="form-group">
+                <i class="fas fa-key"></i>
+                <input type="password" name="password" class="premium-input" placeholder="Contraseña segura" required>
+            </div>
+            <button type="submit" class="premium-btn" style="width: 100%;">Acceder al Portal</button>
             {% if form.errors %}
-                <p class="error-msg">Usuario o contraseña incorrectos.</p>
+                <div class="alert alert-error" style="margin-top: 20px;">
+                    <i class="fas fa-exclamation-circle"></i> Credenciales incorrectas.
+                </div>
             {% endif %}
         </form>
 
-        <p style="margin-top: 20px; color: #777; font-size: 0.8em;">
-            TFG Gestión de Citas Médicas
-        </p>
+        <div style="margin-top: 40px; font-size: 0.95rem; color: var(--text-muted);">
+            ¿Aún no tienes cuenta? <a href="{% url 'registro' %}" style="color: var(--primary); text-decoration: none; font-weight: 800;">Regístrate</a>
+        </div>
+        <a href="{% url 'index' %}" style="display: inline-block; margin-top: 30px; color: #94a3b8; text-decoration: none; font-size: 0.85rem; font-weight: 600;">
+            <i class="fas fa-arrow-left"></i> Volver a la web
+        </a>
     </div>
-
-</body>
-</html>
+{% endblock %}

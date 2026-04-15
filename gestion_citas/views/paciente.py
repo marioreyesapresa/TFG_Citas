@@ -7,8 +7,10 @@ from django.http import JsonResponse
 from datetime import datetime, timedelta
 import logging
 
+from django.contrib.auth import login
 from ..models import Cita, Medico, Paciente, Especialidad, Centro, EstadoCita, PropuestaReasignacion, EstadoPropuesta, Notificacion
 from ..forms import PacienteForm
+from ..forms.registro import UserRegistrationForm
 
 logger = logging.getLogger(__name__)
 
@@ -18,9 +20,41 @@ def perfil_paciente(request):
         return redirect('dashboard')
     
     paciente = request.user.paciente
+ 
+    # --- MAGIA UX: Confirmación automática tras Login/Registro ---
+    cita_pendiente = request.session.get('cita_pendiente')
+    if cita_pendiente:
+        try:
+            medico = Medico.objects.get(id=cita_pendiente['medico_id'])
+            nueva_cita = Cita.objects.create(
+                paciente=paciente,
+                medico=medico,
+                especialidad=medico.especialidad,
+                centro=medico.centro,
+                fecha=cita_pendiente['fecha'],
+                hora_inicio=cita_pendiente['hora'],
+                estado=EstadoCita.CONFIRMADA
+            )
+            messages.success(request, f"¡Hola {request.user.first_name}! Tu sesión se ha iniciado y hemos confirmado la cita que habías seleccionado.")
+            return render(request, 'gestion_citas/paciente/cita_confirmada.html', {'cita': nueva_cita})
+        except Exception as e:
+            logger.error(f"Error al asignar cita pendiente tras login: {e}")
+        finally:
+            request.session.pop('cita_pendiente', None)
+
+    # Manejo del Formulario de Ajustes (vía Modal)
+    if request.method == 'POST' and 'ajustes_perfil' in request.POST:
+        form = PacienteForm(request.POST, instance=paciente)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "¡Perfil actualizado con éxito!")
+            return redirect('perfil_paciente')
+    else:
+        form = PacienteForm(instance=paciente)
+    
     citas = Cita.objects.filter(
         paciente=paciente
-    ).select_related('medico__user', 'centro', 'consulta_medica').order_by('-fecha', '-hora_inicio')
+    ).select_related('medico__user', 'centro', 'consulta_medica').order_by('fecha', 'hora_inicio')
 
     ahora = timezone.now()
     PropuestaReasignacion.objects.filter(
@@ -42,30 +76,49 @@ def perfil_paciente(request):
     return render(request, 'gestion_citas/paciente/perfil_paciente.html', {
         'citas': citas,
         'propuesta': propuesta_activa,
-        'notificaciones': notificaciones
+        'notificaciones': notificaciones,
+        'form': form # Pasamos el formulario para el Modal
     })
 
-@login_required
-def editar_perfil(request):
-    if not hasattr(request.user, 'paciente'):
+def registro_paciente(request):
+    if request.user.is_authenticated:
         return redirect('dashboard')
-    
-    paciente = request.user.paciente
+        
     if request.method == 'POST':
-        form = PacienteForm(request.POST, instance=paciente)
+        form = UserRegistrationForm(request.POST)
         if form.is_valid():
-            form.save()
-            messages.success(request, "¡Perfil actualizado con éxito!")
-            return redirect('perfil_paciente')
+            user = form.save()
+            login(request, user)
+            
+            # MAGIA UX: ¿Había una cita pendiente en la sesión?
+            cita_pendiente = request.session.get('cita_pendiente')
+            if cita_pendiente:
+                try:
+                    medico = Medico.objects.get(id=cita_pendiente['medico_id'])
+                    nueva_cita = Cita.objects.create(
+                        paciente=user.paciente,
+                        medico=medico,
+                        especialidad=medico.especialidad,
+                        centro=medico.centro,
+                        fecha=cita_pendiente['fecha'],
+                        hora_inicio=cita_pendiente['hora'],
+                        estado=EstadoCita.CONFIRMADA
+                    )
+                    messages.success(request, f"¡Bienvenido/a {user.first_name}! Tu cuenta ha sido creada y tu cita ha sido confirmada.")
+                    return render(request, 'gestion_citas/paciente/cita_confirmada.html', {'cita': nueva_cita})
+                except Exception as e:
+                    logger.error(f"Error al asignar cita pendiente tras registro: {e}")
+                    messages.warning(request, "Tu cuenta ha sido creada, pero no pudimos confirmar automáticamente la cita seleccionada. Por favor, solicítala de nuevo.")
+                finally:
+                    request.session.pop('cita_pendiente', None)
+            
+            messages.success(request, f"¡Bienvenido/a {user.first_name}! Tu cuenta ha sido creada con éxito.")
+            return redirect('dashboard')
     else:
-        form = PacienteForm(instance=paciente)
+        form = UserRegistrationForm()
     
-    return render(request, 'gestion_citas/paciente/editar_perfil.html', {
-        'form': form,
-        'paciente': paciente
-    })
+    return render(request, 'gestion_citas/comun/registro.html', {'form': form})
 
-@login_required
 def solicitar_cita(request):
     error_personalizado = None
 
@@ -74,7 +127,17 @@ def solicitar_cita(request):
         fecha = request.POST.get('fecha')
         hora = request.POST.get('hora')
         try:
-            medico = get_object_or_404(Medico, id=medico_id)
+            if not request.user.is_authenticated:
+                # MAGIA UX: Guardar en sesión y pedir login/registro
+                request.session['cita_pendiente'] = {
+                    'medico_id': medico_id,
+                    'fecha': fecha,
+                    'hora': hora
+                }
+                messages.info(request, "Para confirmar tu cita, por favor inicia sesión o crea una cuenta.")
+                return redirect('login')
+
+            medico = Medico.objects.get(id=medico_id)
             nueva_cita = Cita(
                 paciente=request.user.paciente,
                 medico=medico,
