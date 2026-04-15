@@ -39,6 +39,7 @@ def perfil_paciente(request):
             return render(request, 'gestion_citas/paciente/cita_confirmada.html', {'cita': nueva_cita})
         except Exception as e:
             logger.error(f"Error al asignar cita pendiente tras login: {e}")
+            messages.warning(request, "Tu sesión se ha iniciado, pero no pudimos confirmar automáticamente tu cita seleccionada. Por favor, inténtalo de nuevo desde la búsqueda.")
         finally:
             request.session.pop('cita_pendiente', None)
 
