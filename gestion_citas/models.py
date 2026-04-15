@@ -385,3 +385,38 @@ class Receta(models.Model):
 
     def __str__(self):
         return f"{self.medicamento} - {self.posologia}"
+
+# ==========================================
+# 9. SEÑALES DEL MOTOR (R8 - Automatización)
+# ==========================================
+from django.db.models.signals import post_delete
+from django.dispatch import receiver
+
+@receiver(post_delete, sender=Cita)
+def procesar_borrado_cita(sender, instance, **kwargs):
+    """
+    Si una cita se borra físicamente (Admin), el motor detecta el hueco liberado,
+    crea un registro de 'Hueco Libre' y busca candidatos.
+    """
+    # Solo actuar para citas futuras que no estuvieran ya canceladas o atendidas
+    if instance.fecha >= datetime.date.today() and instance.estado not in [EstadoCita.CANCELADA, EstadoCita.ATENDIDA]:
+        print(f"\n🗑️ [MOTOR] Aviso de borrado físico detectado para {instance.fecha} {instance.hora_inicio}")
+        
+        # Como la cita original se borró, creamos un "Hueco Fantasma" (sin paciente)
+        # para que el motor tenga un objeto real al que vincular la propuesta.
+        try:
+            hueco_fantasma = Cita.objects.create(
+                paciente=instance.paciente, # Mantenemos al paciente original como referencia histórica del hueco
+                medico=instance.medico,
+                especialidad=instance.especialidad,
+                centro=instance.centro,
+                fecha=instance.fecha,
+                hora_inicio=instance.hora_inicio,
+                estado=EstadoCita.CANCELADA # Lo marcamos como cancelado/libre
+            )
+            print(f"✨ [MOTOR] Se ha generado un registro de 'Hueco Libre' para sustituir la eliminación.")
+            
+            from .algoritmo_reasignacion import iniciar_reasignacion
+            iniciar_reasignacion(hueco_fantasma)
+        except Exception as e:
+            print(f"⚠️ [MOTOR] Error al procesar borrado: {e}")

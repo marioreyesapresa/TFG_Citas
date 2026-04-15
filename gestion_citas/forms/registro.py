@@ -1,3 +1,4 @@
+import re
 from django import forms
 from django.contrib.auth.models import User
 from ..models import Paciente, Turno
@@ -30,6 +31,22 @@ class UserRegistrationForm(forms.ModelForm):
         help_texts = {
             'username': None, # Ocultar el help text por defecto de Django
         }
+
+    def clean_telefono(self):
+        telefono = self.cleaned_data.get('telefono')
+        # Patrón: 9 dígitos, empieza por 6, 7, 8 o 9
+        patron = r'^[6789]\d{8}$'
+        if not re.match(patron, telefono):
+            raise forms.ValidationError("Introduce un número de teléfono español válido (9 dígitos y empezar por 6, 7, 8 o 9).")
+        return telefono
+
+    def clean_fecha_nacimiento(self):
+        fecha = self.cleaned_data.get('fecha_nacimiento')
+        if fecha > forms.fields.datetime.date.today():
+            raise forms.ValidationError("La fecha de nacimiento no puede ser en el futuro.")
+        if fecha.year < 1900:
+            raise forms.ValidationError("El año de nacimiento debe ser posterior a 1900.")
+        return fecha
 
     def clean_dni(self):
         dni = self.cleaned_data.get('dni')

@@ -147,10 +147,10 @@
             </a>
         </form>
 
-        <form action="{% url 'logout' %}" method="post" style="margin-top: auto;">
+        <form action="{% url 'logout' %}" method="post" style="margin-top: auto; padding-top: 20px; border-top: 1px solid #f1f5f9;">
             {% csrf_token %}
-            <button type="submit" class="utility-bar-item logout" style="width: 100%; padding: 10px; font-weight: 600;">
-                <i class="fas fa-power-off"></i> Cerrar Sesión
+            <button type="submit" class="btn-cancel-soft" style="width: 100%; justify-content: center; padding: 12px; font-weight: 700; color: #ef4444; border-color: #fee2e2;">
+                <i class="fas fa-power-off"></i> Cerrar Sesión Segura
             </button>
         </form>
     </div>

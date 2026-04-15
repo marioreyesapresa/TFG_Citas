@@ -1,7 +1,14 @@
+import re
 from django import forms
 from ..models import Paciente
 
 class PacienteForm(forms.ModelForm):
+    def clean_telefono(self):
+        telefono = self.cleaned_data.get('telefono')
+        patron = r'^[6789]\d{8}$'
+        if not re.match(patron, telefono):
+            raise forms.ValidationError("Introduce un número de teléfono español válido (9 dígitos y empezar por 6, 7, 8 o 9).")
+        return telefono
     class Meta:
         model = Paciente
         fields = ['telefono', 'preferencia_turno']

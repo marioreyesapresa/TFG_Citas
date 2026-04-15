@@ -34,7 +34,7 @@ def iniciar_reasignacion(cita_cancelada):
     Algoritmo Determinista de Reasignación (TFG).
     Se ejecuta automáticamente cuando una cita pasa a estado 'CANCELADA'.
     """
-    print(f"\n🚀 MOTOR: Iniciando reasignación para el hueco del {cita_cancelada.fecha} a las {cita_cancelada.hora_inicio}")
+    print(f"\n🚀 [MOTOR] Cita cancelada. Analizando hueco: {cita_cancelada.fecha} a las {cita_cancelada.hora_inicio} (Dr. {cita_cancelada.medico.user.last_name})")
 
     # 0. CARGAR CONFIGURACIÓN DINÁMICA
     config = ConfiguracionReasignacion.objects.first()
@@ -43,16 +43,16 @@ def iniciar_reasignacion(cita_cancelada):
         peso_urgencia = 15.0
         peso_turno = 10.0
         peso_antiguedad = 0.1
-        print("⚠️ MOTOR: No hay configuración global. Usando valores por defecto.")
+        print("⚠️ [MOTOR] No hay configuración global. Usando valores por defecto.")
     else:
         peso_urgencia = config.peso_urgencia
         peso_turno = config.prioridad_turno
         peso_antiguedad = config.peso_antiguedad
-        print(f"⚙️ MOTOR: Configuración cargada -> Urgencia:{peso_urgencia}, Turno:{peso_turno}, Antigüedad:{peso_antiguedad}")
+        print(f"⚙️ [MOTOR] Configuración cargada -> Urgencia:{peso_urgencia}, Turno:{peso_turno}, Antigüedad:{peso_antiguedad}")
 
     # --- PROTECCIÓN PARA PRUEBAS ---
     if cita_cancelada.fecha < datetime.today().date():
-        print("🤷 MOTOR: El hueco liberado es del pasado. Abortando.")
+        print("🤷 [MOTOR] El hueco liberado es del pasado. Abortando.")
         return
 
     # 1. IDENTIFICAR EL HUECO LIBRE
@@ -68,7 +68,7 @@ def iniciar_reasignacion(cita_cancelada):
         estado__in=[EstadoCita.PENDIENTE, EstadoCita.CONFIRMADA]
     ).select_related('paciente')
 
-    print(f"🔍 MOTOR: {candidatos.count()} candidatos futuros encontrados.")
+    print(f"🔍 [MOTOR] {candidatos.count()} candidatos futuros encontrados.")
 
     mejor_candidato = None
     mejor_puntuacion = -1000 # Score inicial bajo
@@ -99,7 +99,7 @@ def iniciar_reasignacion(cita_cancelada):
         ).exclude(estado=EstadoCita.CANCELADA).exists()
 
         if tiene_cita_ese_dia:
-            print(f"   ❌ Descartado {paciente}: Ya tiene cita ese día.")
+            print(f"   ❌ [MOTOR] Descartado {paciente}: Ya tiene cita ese día.")
             continue
 
         # --- REGLA E: Filtros de Propuestas Previas ---
@@ -110,7 +110,7 @@ def iniciar_reasignacion(cita_cancelada):
         ).exists()
 
         if ya_se_le_ofrecio_este_hueco:
-            print(f"   ❌ Descartado {paciente}: Ya se le ofreció este hueco (y lo rechazó o expiró).")
+            print(f"   ❌ [MOTOR] Descartado {paciente}: Ya se le ofreció este hueco.")
             continue
 
         # 2. No abrumar al paciente si ya tiene OTRA propuesta diferente todavía pendiente de que la responda.
@@ -120,10 +120,10 @@ def iniciar_reasignacion(cita_cancelada):
         ).exists()
 
         if ya_tiene_propuesta_activa:
-            print(f"   ❌ Descartado {paciente}: Ya tiene otra propuesta activa pendiente de responder.")
+            print(f"   ❌ [MOTOR] Descartado {paciente}: Ya tiene otra propuesta activa.")
             continue
 
-        print(f"   ✅ Candidato: {paciente} | Score: {puntuacion:.2f}")
+        print(f"   ✅ [MOTOR] Candidato: {paciente} | Score: {puntuacion:.2f}")
 
         # 4. SELECCIÓN DEL MEJOR
         if puntuacion > mejor_puntuacion:
@@ -132,7 +132,7 @@ def iniciar_reasignacion(cita_cancelada):
 
     # 5. GENERACIÓN DE LA PROPUESTA Y NOTIFICACIÓN
     if mejor_candidato:
-        print(f"🏆 GANADOR: {mejor_candidato.paciente} [Usuario: {mejor_candidato.paciente.user.username}] (Score: {mejor_puntuacion:.2f})")
+        print(f"🏆 [MOTOR] Hueco propuesto automáticamente al paciente: {mejor_candidato.paciente} | Usuario: @{mejor_candidato.paciente.user.username} (Score: {mejor_puntuacion:.2f})")
         
         # Crear la propuesta
         propuesta = PropuestaReasignacion.objects.create(

@@ -1,0 +1,10 @@
+{% extends "admin/base_site.html" %}
+
+{% block branding %}
+    <div style="display: flex; align-items: center; gap: 20px;">
+        <h1 id="site-name"><a href="{% url 'admin:index' %}">{{ site_header|default:"Administración Clínica" }}</a></h1>
+        <a href="{% url 'perfil_administrativo' %}" style="background: #10b981; color: white; padding: 5px 15px; border-radius: 20px; text-decoration: none; font-size: 12px; font-weight: 800; display: inline-flex; align-items: center; gap: 5px;">
+            <i class="fas fa-external-link-alt"></i> IR A INTERFAZ PREMIUM
+        </a>
+    </div>
+{% endblock %}

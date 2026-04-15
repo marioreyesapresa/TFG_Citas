@@ -9,9 +9,7 @@ def index(request):
 @login_required
 def dashboard_redirect(request):
     user = request.user
-    if user.is_superuser:
-        return redirect('/admin/') 
-    elif hasattr(user, 'administrativo'):
+    if user.is_superuser or hasattr(user, 'administrativo'):
         return redirect('perfil_administrativo')
     elif hasattr(user, 'medico'):
         return redirect('perfil_medico')
