@@ -1,0 +1,97 @@
+{% extends 'gestion_citas/comun/base.html' %}
+{% load static %}
+
+{% block title %}Mi Historial Médico - Hospital TFG{% endblock %}
+
+{% block extra_head %}
+<style>
+    /* Estilos específicos para la línea de tiempo */
+    .timeline { position: relative; padding: 20px 0; }
+    .timeline::before { 
+        content: ''; position: absolute; left: 31px; top: 0; bottom: 0; width: 4px; 
+        background: #e2e8f0; border-radius: 2px; 
+    }
+    .timeline-item { position: relative; margin-bottom: 40px; padding-left: 80px; }
+    .timeline-dot { 
+        position: absolute; left: 20px; top: 5px; width: 22px; height: 22px; 
+        background: var(--primary); border: 4px solid white; border-radius: 50%; 
+        box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1); z-index: 1; 
+    }
+    .card-history { 
+        background: white; padding: 25px; border-radius: var(--radius-md); 
+        box-shadow: var(--card-shadow); transition: 0.3s; border: 1px solid #f1f5f9; 
+    }
+    .card-history:hover { transform: translateY(-3px); border-color: var(--primary); }
+    .date-text { font-weight: 800; color: var(--text-main); font-size: 1.15rem; }
+    .clinic-text { color: var(--text-muted); font-size: 0.9rem; font-weight: 500; display: flex; align-items: center; gap: 6px; }
+    .recipe-badge {
+        display: inline-flex; align-items: center; gap: 8px; 
+        background: #f0fdf4; color: #166534; padding: 8px 16px; 
+        border-radius: 10px; font-size: 0.85rem; font-weight: 700; margin-top: 15px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+    <div class="utility-bar">
+        <span class="utility-bar-item" style="margin-right: auto;">
+            <i class="fas fa-user-circle"></i> {{ request.user.get_full_name }}
+        </span>
+        <a href="{% url 'perfil_paciente' %}" class="utility-bar-item">
+            <i class="fas fa-arrow-left"></i> Volver a mi Perfil
+        </a>
+    </div>
+
+    <div class="container" style="max-width: 850px;">
+        
+        <div class="premium-card" style="border-left: 10px solid var(--primary); padding: 35px;">
+            <h1 style="margin: 0; font-size: 2.2rem; font-weight: 800;">📑 Mi Historial Médico</h1>
+            <p style="margin: 10px 0 0 0; color: var(--text-muted); font-size: 1rem;">Consulta todos tus informes y pautas clínicas emitidas por nuestros profesionales.</p>
+        </div>
+
+        {% if consultas %}
+        <div class="timeline" style="margin-top: 50px;">
+            {% for consulta in consultas %}
+            <div class="timeline-item">
+                <div class="timeline-dot"></div>
+                <div class="card-history">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 25px; border-bottom: 1px solid #f1f5f9; padding-bottom: 20px;">
+                        <div>
+                            <div class="date-text">{{ consulta.cita.fecha|date:"d \d\e F, Y" }}</div>
+                            <div class="clinic-text"><i class="fas fa-hospital"></i> {{ consulta.cita.centro.nombre }}</div>
+                            <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 6px; font-weight: 600;">
+                                Atendido por: <strong style="color: var(--text-main);">Dr/a. {{ consulta.cita.medico.user.last_name }}</strong> ({{ consulta.cita.medico.especialidad }})
+                            </div>
+                        </div>
+                        <a href="{% url 'descargar_informe_pdf' consulta.id %}" class="btn-outline-primary" style="font-size: 0.8rem; padding: 10px 20px;">
+                            <i class="fas fa-file-pdf"></i> Informe PDF
+                        </a>
+                    </div>
+
+                    <div style="font-weight: 800; color: var(--text-main); margin-bottom: 12px; font-size: 1.1rem; display: flex; align-items: center; gap: 10px;">
+                        <i class="fas fa-notes-medical" style="color: var(--primary);"></i> {{ consulta.motivo_consulta }}
+                    </div>
+                    <div style="font-size: 1rem; color: #475569; line-height: 1.7; font-style: italic; background: #f8fafc; padding: 20px; border-radius: 12px; border-left: 4px solid #e2e8f0;">
+                        "{{ consulta.diagnostico_principal|truncatewords:40 }}"
+                    </div>
+                    
+                    {% with recipes_count=consulta.recetas.count %}
+                    {% if recipes_count %}
+                    <div class="recipe-badge">
+                        <i class="fas fa-pills"></i> {{ recipes_count }} medicamento {{ recipes_count|pluralize:"s" }} prescrito {{ recipes_count|pluralize:"s" }}
+                    </div>
+                    {% endif %}
+                    {% endwith %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div style="text-align: center; padding: 100px 20px; background: white; border-radius: var(--radius-md); border: 2px dashed #e2e8f0; margin-top: 40px;">
+            <i class="far fa-folder-open fa-5x" style="color: #cbd5e1; margin-bottom: 25px; display: block;"></i>
+            <h3 style="color: var(--text-muted); font-weight: 800; font-size: 1.5rem;">Aún no tienes registros médicos</h3>
+            <p style="color: #94a3b8; font-size: 1.1rem;">Tus informes aparecerán aquí automáticamente tras tus consultas presenciales.</p>
+        </div>
+        {% endif %}
+    </div>
+{% endblock %}

@@ -1,0 +1,127 @@
+{% extends 'gestion_citas/comun/base.html' %}
+{% load static %}
+
+{% block title %}Certificación Digital - Hospital TFG{% endblock %}
+
+{% block extra_head %}
+<style>
+    body { 
+        display: flex; 
+        align-items: center; 
+        justify-content: center; 
+        min-height: 100vh; 
+        background: #f1f5f9; 
+        padding: 20px !important;
+    }
+    .cert-card {
+        background: white;
+        max-width: 500px;
+        width: 100%;
+        border-radius: var(--radius-lg);
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.1);
+        padding: 50px;
+        text-align: center;
+        border-top: 10px solid var(--primary);
+        position: relative;
+    }
+    .check-icon {
+        width: 90px;
+        height: 90px;
+        background: var(--primary);
+        color: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 30px;
+        font-size: 3rem;
+        box-shadow: 0 0 0 10px rgba(37, 99, 235, 0.1);
+        animation: scalePop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    @keyframes scalePop {
+        from { transform: scale(0.5); opacity: 0; }
+        to { transform: scale(1); opacity: 1; }
+    }
+    .cert-status {
+        color: var(--primary);
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
+        font-size: 0.85rem;
+        margin-bottom: 30px;
+        display: block;
+        border-bottom: 1px solid #f1f5f9;
+        padding-bottom: 15px;
+    }
+    .data-row {
+        text-align: left;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        margin-bottom: 18px;
+    }
+    .data-row .label { color: var(--text-muted); font-size: 0.7rem; font-weight: 700; text-transform: uppercase; }
+    .data-row .value { color: var(--text-main); font-weight: 700; font-size: 1.05rem; }
+
+    .meds-container {
+        text-align: left;
+        background: #f8fafc;
+        border-radius: var(--radius-md);
+        padding: 20px;
+        margin-top: 25px;
+        border: 1px solid #e2e8f0;
+    }
+    .meds-title { color: var(--primary); font-weight: 700; font-size: 0.85rem; margin-bottom: 10px; display: block; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="cert-card">
+    <div class="check-icon">
+        <i class="fas fa-certificate"></i>
+    </div>
+    
+    <h1 style="font-size: 1.6rem; color: var(--text-main); margin-bottom: 5px;">{{ consulta.cita.centro.nombre }}</h1>
+    <span class="cert-status">Documento Validado Exitosamente</span>
+
+    <div style="background: white; padding: 25px; border-radius: var(--radius-md); border: 1px solid #f1f5f9; margin-bottom: 25px;">
+        <div class="data-row">
+            <span class="label">Paciente</span>
+            <span class="value">{{ consulta.cita.paciente.user.get_full_name }}</span>
+        </div>
+        <div class="data-row">
+            <span class="label">Profesional Responsable</span>
+            <span class="value">Dr/a. {{ consulta.cita.medico.user.last_name }}</span>
+        </div>
+        <div class="data-row">
+            <span class="label">Fecha de Encuentro Clínico</span>
+            <span class="value">{{ consulta.cita.fecha|date:"d/m/Y" }}</span>
+        </div>
+    </div>
+
+    {% if consulta.recetas.all %}
+    <div class="meds-container">
+        <span class="meds-title"><i class="fas fa-prescription-bottle-medical"></i> Prescripción Farmacéutica:</span>
+        <ul style="margin: 0; padding-left: 20px; font-size: 0.9rem; color: var(--text-main); line-height: 1.6;">
+            {% for receta in consulta.recetas.all %}
+            <li><strong>{{ receta.medicamento }}</strong>: {{ receta.posologia }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+
+    <div style="margin-top: 40px; border-top: 1px solid #f1f5f9; padding-top: 20px;">
+        <div style="font-size: 0.75rem; color: var(--text-muted); line-height: 1.5;">
+            Esta es una certificación digital oficial del Hospital TFG. 
+            El código único de integridad del documento es:
+            <div style="color: var(--text-main); font-family: monospace; font-size: 0.85rem; margin-top: 8px; background: #f8fafc; padding: 5px; border-radius: 4px;">
+                {{ consulta.token_verificacion }}
+            </div>
+        </div>
+    </div>
+
+    <div style="margin-top: 30px; font-weight: 800; font-size: 0.7rem; color: #cbd5e1; letter-spacing: 2px;">
+        HOSPITAL TFG DIGITAL SYSTEM
+    </div>
+</div>
+{% endblock %}

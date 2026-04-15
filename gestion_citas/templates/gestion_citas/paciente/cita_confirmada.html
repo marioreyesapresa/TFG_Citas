@@ -1,80 +1,90 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cita Confirmada - Hospital TFG</title>
-    <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f4f7f6;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-        }
-        .success-card {
-            background: white;
-            padding: 40px;
-            border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-            text-align: center;
-            max-width: 450px;
-            width: 90%;
-        }
-        .icon {
-            font-size: 4em;
-            color: #2ecc71;
-            margin-bottom: 20px;
-        }
-        h1 { color: #2c3e50; margin-bottom: 10px; }
-        p { color: #7f8c8d; line-height: 1.6; }
-        
-        .details-box {
-            background: #f9f9f9;
-            border: 1px solid #eee;
-            border-radius: 10px;
-            padding: 20px;
-            margin: 25px 0;
-            text-align: left;
-        }
-        .details-box div {
-            margin-bottom: 10px;
-            color: #34495e;
-        }
-        .details-box strong { color: #2c3e50; }
+{% extends 'gestion_citas/comun/base.html' %}
+{% load static %}
 
-        .btn-home {
-            display: inline-block;
-            padding: 12px 25px;
-            background-color: #3498db;
-            color: white;
-            text-decoration: none;
-            border-radius: 5px;
-            font-weight: bold;
-            transition: background 0.3s;
-        }
-        .btn-home:hover { background-color: #2980b9; }
-    </style>
-</head>
-<body>
+{% block title %}Cita Confirmada - Hospital TFG{% endblock %}
 
-    <div class="success-card">
-        <div class="icon">✅</div>
-        <h1>¡Cita Confirmada!</h1>
-        <p>Tu solicitud ha sido procesada correctamente. Se ha enviado una notificación al equipo médico.</p>
+{% block extra_head %}
+<style>
+    .success-card {
+        text-align: center;
+        max-width: 500px;
+        margin: 60px auto;
+    }
+    .success-icon {
+        font-size: 5rem;
+        color: var(--secondary);
+        margin-bottom: 25px;
+        display: block;
+        animation: scaleIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    @keyframes scaleIn {
+        from { transform: scale(0); opacity: 0; }
+        to { transform: scale(1); opacity: 1; }
+    }
+    .details-box {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: var(--radius-md);
+        padding: 25px;
+        margin: 30px 0;
+        text-align: left;
+    }
+    .details-item {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 12px;
+        font-size: 0.95rem;
+        border-bottom: 1px dashed #e2e8f0;
+        padding-bottom: 12px;
+    }
+    .details-item:last-child {
+        border-bottom: none;
+        margin-bottom: 0;
+        padding-bottom: 0;
+    }
+    .details-label { color: var(--text-muted); font-weight: 600; }
+    .details-value { color: var(--text-main); font-weight: 700; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="premium-card success-card">
+        <i class="fas fa-check-circle success-icon"></i>
+        <h1 style="color: var(--text-main); font-size: 2rem;">¡Cita Confirmada!</h1>
+        <p style="color: var(--text-muted); margin-bottom: 20px;">Tu solicitud ha sido procesada con éxito y el equipo médico ha sido notificado.</p>
 
         <div class="details-box">
-            <div><strong>Médico:</strong> {{ cita.medico }}</div>
-            <div><strong>Especialidad:</strong> {{ cita.medico.especialidad }}</div>
-            <div><strong>Fecha:</strong> {{ cita.fecha|date:"d/m/Y" }}</div>
-            <div><strong>Hora:</strong> {{ cita.hora_inicio|time:"H:i" }}</div>
-            <div><strong>Centro:</strong> {{ cita.medico.centro }}</div>
+            <div class="details-item">
+                <span class="details-label">Médico</span>
+                <span class="details-value">Dr/a. {{ cita.medico.user.last_name }}</span>
+            </div>
+            <div class="details-item">
+                <span class="details-label">Especialidad</span>
+                <span class="details-value">{{ cita.especialidad.nombre }}</span>
+            </div>
+            <div class="details-item">
+                <span class="details-label">Fecha</span>
+                <span class="details-value">{{ cita.fecha|date:"d/m/Y" }}</span>
+            </div>
+            <div class="details-item">
+                <span class="details-label">Hora</span>
+                <span class="details-value">{{ cita.hora_inicio|time:"H:i" }}</span>
+            </div>
+            <div class="details-item">
+                <span class="details-label">Centro</span>
+                <span class="details-value">{{ cita.centro.nombre }}</span>
+            </div>
         </div>
 
-        <a href="{% url 'dashboard' %}" class="btn-home">Volver al Inicio</a>
+        <div class="actions-container" style="display: flex; flex-direction: column; gap: 12px; max-width: 100%; align-items: center;">
+            <a href="{% url 'perfil_paciente' %}" class="premium-btn" style="width: 100%; max-width: 400px; display: flex; justify-content: center; align-items: center; gap: 10px;">
+                Ver mis citas <i class="fas fa-calendar-alt"></i>
+            </a>
+            <a href="{% url 'index' %}" class="btn-cancel-soft" style="width: 100%; max-width: 400px; justify-content: center; padding: 12px; display: flex; align-items: center; gap: 8px;">
+                <i class="fas fa-home"></i> Volver al inicio
+            </a>
+        </div>
     </div>
-
-</body>
-</html>
+</div>
+{% endblock %}

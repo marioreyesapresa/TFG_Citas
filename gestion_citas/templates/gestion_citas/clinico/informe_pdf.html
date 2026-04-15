@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        @page {
+            size: a4 portrait;
+            margin: 2cm;
+            @frame footer_frame {
+                -pdf-frame-content: footer_content;
+                bottom: 1cm;
+                margin-left: 2cm;
+                margin-right: 2cm;
+                height: 1cm;
+            }
+        }
+        body { font-family: Helvetica, Arial, sans-serif; color: #333; line-height: 1.4; }
+        
+        .header { border-bottom: 2px solid #0056b3; padding-bottom: 10px; margin-bottom: 20px; }
+        .logo { font-size: 24px; font-weight: bold; color: #0056b3; }
+        .hospital-name { font-size: 14px; font-weight: bold; color: #666; }
+        
+        .report-title { text-align: center; font-size: 18px; font-weight: bold; margin-top: 20px; margin-bottom: 30px; text-transform: uppercase; border: 1px solid #333; padding: 10px; }
+        
+        .section { margin-bottom: 20px; }
+        .section-title { font-size: 12px; font-weight: bold; color: #0056b3; text-transform: uppercase; border-bottom: 1px solid #eee; margin-bottom: 8px; }
+        .content { font-size: 11px; text-align: justify; }
+        
+        .patient-box { background-color: #f9f9f9; padding: 10px; border-radius: 5px; margin-bottom: 20px; border: 0.5px solid #ddd; }
+        .patient-box table { width: 100%; }
+        .patient-box td { font-size: 10px; padding: 2px; }
+
+        .diagnostico-box { background-color: #fffdf0; padding: 10px; border: 1px solid #faed70; margin-top: 10px; }
+
+        .medication-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        .medication-table th { background-color: #f2f2f2; font-size: 10px; text-align: left; padding: 5px; border-bottom: 1px solid #ddd; }
+        .medication-table td { font-size: 10px; padding: 5px; border-bottom: 0.5px solid #eee; }
+
+        .signature-area { margin-top: 50px; }
+        .signature-box { float: right; width: 200px; text-align: center; border-top: 1px solid #333; padding-top: 5px; font-size: 10px; }
+        
+        .verification-footer { margin-top: 30px; border-top: 2px dashed #ddd; padding-top: 15px; }
+        .qr-section { width: 100px; float: left; margin-right: 20px; }
+        .verify-text { font-size: 9px; color: #777; margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+    <div id="footer_content">Página <pdf:pagenumber /> de <pdf:pagecount /></div>
+
+    <div class="header">
+        <div class="logo">{{ consulta.cita.centro.nombre|upper }}</div>
+        <div class="hospital-name">Unidad de Gestión de Pacientes - {{ consulta.cita.centro.direccion }}</div>
+    </div>
+
+    <div class="patient-box">
+        <table>
+            <tr>
+                <td width="15%"><strong>PACIENTE:</strong></td>
+                <td width="35%">{{ consulta.cita.paciente.user.get_full_name }}</td>
+                <td width="15%"><strong>FECHA CITA:</strong></td>
+                <td width="35%">{{ consulta.cita.fecha|date:"d/m/Y" }}</td>
+            </tr>
+            <tr>
+                <td><strong>DNI/NHC:</strong></td>
+                <td>{{ consulta.cita.paciente.dni }}</td>
+                <td><strong>MÉDICO:</strong></td>
+                <td>Dr/a. {{ consulta.cita.medico.user.last_name }}</td>
+            </tr>
+            <tr>
+                <td><strong>ESPECIALIDAD:</strong></td>
+                <td>{{ consulta.cita.medico.especialidad }}</td>
+                <td><strong>REF. INFORME:</strong></td>
+                <td>#{{ consulta.id }}CLIN</td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="report-title">INFORME DE CONSULTA MÉDICA</div>
+
+    <div class="section">
+        <div class="section-title">Motivo de la Consulta</div>
+        <div class="content">{{ consulta.motivo_consulta }}</div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">Anamnesis y Antecedentes</div>
+        <div class="content">
+            <strong>Alergias/RAM:</strong> {{ consulta.antecedentes_alergias|default:"No se refieren." }}<br>
+            <strong>Descripción:</strong> {{ consulta.descripcion_problema|default:"Sin detalles adicionales." }}
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">Exploración y Pruebas</div>
+        <div class="content">
+            <strong>Física:</strong> {{ consulta.exploracion_medica|default:"Normal." }}<br>
+            <strong>Pruebas:</strong> {{ consulta.pruebas_solicitadas|default:"Ninguna." }}
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">Diagnóstico (Juicio Clínico)</div>
+        <div class="diagnostico-box">
+            <div class="content"><strong>{{ consulta.diagnostico_principal }}</strong></div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">Plan Terapéutico y Recomendaciones</div>
+        <div class="content">{{ consulta.tratamiento_pautas|default:"Sin recomendaciones especiales." }}</div>
+    </div>
+
+    {% if consulta.recetas.all %}
+    <div class="section">
+        <div class="section-title">Prescripción Farmacológica</div>
+        <table class="medication-table">
+            <thead>
+                <tr>
+                    <th>Medicamento</th>
+                    <th>Posología</th>
+                    <th>Duración</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for receta in consulta.recetas.all %}
+                <tr>
+                    <td><strong>{{ receta.medicamento }}</strong></td>
+                    <td>{{ receta.posologia }}</td>
+                    <td>{{ receta.duracion }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
+    <div class="signature-area">
+        <div class="signature-box">
+            Fmdo: Dr/a. {{ consulta.cita.medico.user.last_name }}<br>
+            Col N: {{ consulta.cita.medico.numero_colegiado }}
+        </div>
+    </div>
+
+    <!-- VERIFICACIÓN QR -->
+    <div class="verification-footer">
+        <div class="qr-section">
+            <img src="data:image/png;base64,{{ qr_code }}" width="100" height="100">
+        </div>
+        <div style="float: left; width: 400px;">
+            <p style="font-weight: bold; font-size: 11px; margin-bottom: 5px; color: #2ecc71;">✓ VERIFICACIÓN DE SEGURIDAD</p>
+            <p class="verify-text">
+                Este documento contiene un código de seguridad único para su validación en oficinas de farmacia y centros colaboradores. 
+                La autenticidad de los fármacos prescritos puede ser verificada escaneando el código adjunto. 
+                Válido solo con firma médica y sello digital del centro.
+            </p>
+        </div>
+        <div style="clear: both;"></div>
+    </div>
+
+</body>
+</html>

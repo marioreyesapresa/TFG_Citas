@@ -16,7 +16,14 @@ SECRET_KEY = 'django-insecure--0o*o#_p!l-d&a@ovw#x4352@fe!4gh%o^=$d!%j8=wptkj0fe
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = [
+    host.strip()
+    for host in os.environ.get(
+        'DJANGO_ALLOWED_HOSTS',
+        'tfg-citas-791788503447.europe-west1.run.app,localhost,127.0.0.1,192.168.1.2'
+    ).split(',')
+    if host.strip()
+]
 
 # Esta es la línea clave para quitar el error "Prohibido (403)"
 CSRF_TRUSTED_ORIGINS = ['https://tfg-citas-791788503447.europe-west1.run.app']
@@ -91,7 +98,7 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # CONFIGURACIÓN DE LOGIN
-LOGIN_URL = '/'
+LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = 'dashboard'
 LOGOUT_REDIRECT_URL = 'login'
 

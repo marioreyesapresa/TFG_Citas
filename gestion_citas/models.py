@@ -3,6 +3,7 @@ from django.db.models import Q
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 import datetime
+import uuid
 from datetime import timedelta
 
 DURACION_CITA = 30
@@ -55,7 +56,9 @@ class Paciente(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='paciente')
     
     # Datos específicos del Paciente 
+    dni = models.CharField(max_length=9, unique=True, null=True, blank=True)
     telefono = models.CharField(max_length=15)
+    fecha_nacimiento = models.DateField(null=True, blank=True)
     preferencia_turno = models.CharField(
         max_length=1, 
         choices=Turno.choices, 
@@ -140,6 +143,7 @@ class EstadoCita(models.TextChoices):
     CONFIRMADA = 'C', 'Confirmada'
     CANCELADA = 'X', 'Cancelada'
     EN_ESPERA = 'R', 'En espera de reasignación'
+    ATENDIDA = 'A', 'Atendida'
 
 class Cita(models.Model):
     paciente = models.ForeignKey(Paciente, on_delete=models.CASCADE, related_name='citas')
@@ -340,3 +344,79 @@ class ConfiguracionReasignacion(models.Model):
 
     def __str__(self):
         return "Configuración Global del Motor"
+
+# ==========================================
+# 8. MÓDULO CLÍNICO
+# ==========================================
+class ConsultaMedica(models.Model):
+    cita = models.OneToOneField(Cita, on_delete=models.CASCADE, related_name='consulta_medica')
+    motivo_consulta = models.CharField(max_length=255)
+    
+    # --- NUEVOS CAMPOS PROFESIONALES (Epic 4.4 - Iteración II) ---
+    antecedentes_alergias = models.TextField(blank=True, null=True, help_text="RAM, antecedentes familiares...")
+    descripcion_problema = models.TextField(blank=True, null=True, help_text="Descripción narrativa del episodio...")
+    exploracion_medica = models.TextField(blank=True, null=True, help_text="Constantes y exploración por aparatos...")
+    pruebas_solicitadas = models.TextField(blank=True, null=True, help_text="Rx, Analíticas...")
+    
+    diagnostico_principal = models.TextField(blank=True, null=True, help_text="Diagnóstico final o presuntivo")
+    tratamiento_pautas = models.TextField(blank=True, null=True, help_text="Medidas generales, derivaciones, reposo...")
+    
+    # Token de seguridad para validación pública (Epic 4.6)
+    token_verificacion = models.UUIDField(default=uuid.uuid4, editable=False, unique=True, null=False)
+    
+    observaciones = models.TextField(blank=True, null=True, help_text="Notas de control interno")
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Consulta: {self.motivo_consulta} ({self.cita.paciente})"
+
+    def save(self, *args, **kwargs):
+        # Garantía Extra de Integridad (Copilot Feedback)
+        if not self.token_verificacion:
+            self.token_verificacion = uuid.uuid4()
+        super().save(*args, **kwargs)
+
+class Receta(models.Model):
+    consulta = models.ForeignKey(ConsultaMedica, on_delete=models.CASCADE, related_name='recetas')
+    medicamento = models.CharField(max_length=255)
+    posologia = models.CharField(max_length=255)
+    duracion = models.CharField(max_length=255)
+    activo = models.BooleanField(default=True)
+
+    def __str__(self):
+        return f"{self.medicamento} - {self.posologia}"
+
+# ==========================================
+# 9. SEÑALES DEL MOTOR (R8 - Automatización)
+# ==========================================
+from django.db.models.signals import post_delete
+from django.dispatch import receiver
+
+@receiver(post_delete, sender=Cita)
+def procesar_borrado_cita(sender, instance, **kwargs):
+    """
+    Si una cita se borra físicamente (Admin), el motor detecta el hueco liberado,
+    crea un registro de 'Hueco Libre' y busca candidatos.
+    """
+    # Solo actuar para citas futuras que no estuvieran ya canceladas o atendidas
+    if instance.fecha >= datetime.date.today() and instance.estado not in [EstadoCita.CANCELADA, EstadoCita.ATENDIDA]:
+        print(f"\n🗑️ [MOTOR] Aviso de borrado físico detectado para {instance.fecha} {instance.hora_inicio}")
+        
+        # Como la cita original se borró, creamos un "Hueco Fantasma" (sin paciente)
+        # para que el motor tenga un objeto real al que vincular la propuesta.
+        try:
+            hueco_fantasma = Cita.objects.create(
+                paciente=instance.paciente, # Mantenemos al paciente original como referencia histórica del hueco
+                medico=instance.medico,
+                especialidad=instance.especialidad,
+                centro=instance.centro,
+                fecha=instance.fecha,
+                hora_inicio=instance.hora_inicio,
+                estado=EstadoCita.CANCELADA # Lo marcamos como cancelado/libre
+            )
+            print(f"✨ [MOTOR] Se ha generado un registro de 'Hueco Libre' para sustituir la eliminación.")
+            
+            from .algoritmo_reasignacion import iniciar_reasignacion
+            iniciar_reasignacion(hueco_fantasma)
+        except Exception as e:
+            print(f"⚠️ [MOTOR] Error al procesar borrado: {e}")

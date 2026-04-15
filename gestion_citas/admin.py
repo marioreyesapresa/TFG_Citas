@@ -10,7 +10,7 @@ from django.utils.safestring import mark_safe
 from .models import (
     Administrativo, Centro, Cita, Especialidad, 
     HorarioMedico, Medico, Paciente, PropuestaReasignacion, GestionHorario,
-    Notificacion, ConfiguracionReasignacion
+    Notificacion, ConfiguracionReasignacion, ConsultaMedica, Receta
 )
 
 # ================================================================
@@ -165,6 +165,12 @@ admin.site.register(Cita, CitaAdmin)
 admin.site.register(PropuestaReasignacion, PropuestaAdmin) 
 admin.site.register(Notificacion)
 admin.site.register(ConfiguracionReasignacion)
+class ConsultaMedicaAdmin(admin.ModelAdmin):
+    list_display = ('cita', 'motivo_consulta', 'diagnostico_principal', 'fecha_creacion')
+    search_fields = ('motivo_consulta', 'diagnostico_principal', 'cita__paciente__user__last_name')
+
+admin.site.register(ConsultaMedica, ConsultaMedicaAdmin)
+admin.site.register(Receta)
 
 # ¡AQUÍ REGISTRAMOS TU NUEVO MENÚ VISUAL DE HORARIOS!
 admin.site.register(GestionHorario, GestionHorarioAdmin)
