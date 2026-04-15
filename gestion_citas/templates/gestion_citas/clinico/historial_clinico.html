@@ -1,141 +1,171 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <title>Historial Clínico Permanente - Hospital TFG</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/premium.css' %}">
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background-color: #f8f9fa; padding: 20px; color: #333; }
-        .container { max-width: 950px; margin: auto; }
-        
-        .page-header { border-bottom: 3px solid #0056b3; padding-bottom: 10px; margin-bottom: 30px; display: flex; justify-content: space-between; align-items: center; }
-        h1 { color: #0056b3; font-size: 1.8rem; margin: 0; }
-        
-        .btn-back { background: #6c757d; color: white; text-decoration: none; padding: 10px 20px; border-radius: 5px; font-weight: 600; font-size: 0.9rem; }
-        .btn-back:hover { background: #5a6268; }
-
-        /* Tarjeta de Consulta Médica */
-        .medical-report { background: white; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); margin-bottom: 40px; overflow: hidden; border: 1px solid #e1e4e8; }
-        .report-header { background: #f1f8ff; padding: 20px; border-bottom: 1px solid #d1d9e1; display: flex; justify-content: space-between; align-items: flex-start; }
-        .report-title { color: #0056b3; font-size: 1.25rem; font-weight: bold; margin-bottom: 5px; }
-        .report-meta { font-size: 0.85rem; color: #586069; }
-
-        .btn-pdf { background: #e74c3c; color: white; text-decoration: none; padding: 6px 12px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; margin-left: 15px; display: inline-block; }
-        .btn-pdf:hover { background: #c0392b; }
-
-        .report-body { padding: 30px; display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
-        
-        /* Secciones de Datos */
-        .info-block { margin-bottom: 20px; }
-        .info-label { font-size: 0.75rem; text-transform: uppercase; font-weight: bold; color: #6a737d; margin-bottom: 6px; letter-spacing: 0.5px; border-bottom: 1px solid #eee; display: block; }
-        .info-value { font-size: 0.95rem; line-height: 1.6; color: #24292e; white-space: pre-wrap; }
-        
-        /* Resaltado del Juicio Clínico */
-        .juicio-clinico { grid-column: span 2; background: #fffdf0; border: 1px solid #faed70; padding: 15px; border-radius: 6px; }
-        .juicio-clinico .info-value { font-weight: 600; color: #735c0f; }
-
-        /* Tabla de Medicación */
-        .medication-box { grid-column: span 2; background: #f6f8fa; border: 1px solid #e1e4e8; padding: 20px; border-radius: 8px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th { text-align: left; font-size: 0.8rem; color: #586069; padding: 10px; border-bottom: 2px solid #ddd; }
-        td { padding: 12px 10px; font-size: 0.9rem; border-bottom: 1px solid #eef0f1; }
-        .med-name { font-weight: bold; color: #0366d6; }
+        .report-header {
+            background: #f8fafc;
+            padding: 20px 30px;
+            border-bottom: 2px solid #f1f5f9;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .report-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            padding: 30px;
+        }
+        .info-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            font-weight: 700;
+            color: var(--text-muted);
+            letter-spacing: 0.5px;
+            display: block;
+            margin-bottom: 5px;
+        }
+        .info-value {
+            color: var(--text-main);
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+        .medication-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        .medication-table th {
+            text-align: left;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            padding: 10px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .medication-table td {
+            padding: 12px 10px;
+            border-bottom: 1px solid #f1f5f9;
+        }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <div class="page-header">
-        <h1>📋 Historial Clínico Digital</h1>
-        <a href="{% url 'dashboard' %}" class="btn-back">← Volver al Panel</a>
+    <div class="utility-bar">
+        <span class="utility-bar-item">
+            <i class="fas fa-file-medical-alt"></i> Visor de Historial Clínico
+        </span>
+        <a href="{% url 'dashboard' %}" class="utility-bar-item">
+            <i class="fas fa-arrow-left"></i> Volver al Panel
+        </a>
     </div>
 
-    {% if consultas %}
-        {% for consulta in consultas %}
-        <article class="medical-report">
-            <!-- CABECERA DEL INFORME -->
-            <header class="report-header">
-                <div>
-                    <div class="report-title">
-                        {{ consulta.motivo_consulta }}
-                        <a href="{% url 'descargar_informe_pdf' consulta.id %}" class="btn-pdf">📄 Descargar PDF</a>
-                    </div>
-                    <div class="report-meta">
-                        👤 Atendido en: <strong>{{ consulta.cita.centro.nombre }}</strong> por Dr/a. {{ consulta.cita.medico.user.last_name }} ({{ consulta.cita.medico.especialidad }})
-                    </div>
-                </div>
-                <div style="text-align: right;">
-                    <div style="font-weight: bold; color: #24292e;">{{ consulta.fecha_creacion|date:"d \d\e F, Y" }}</div>
-                    <div style="font-size: 0.8rem; color: #6a737d;">Hora: {{ consulta.fecha_creacion|date:"H:i" }}</div>
-                </div>
-            </header>
-
-            <!-- CUERPO DEL INFORME (GRID ESTRUCTURADO) -->
-            <div class="report-body">
-                
-                <div class="info-block">
-                    <span class="info-label">Antecedentes y Alergias</span>
-                    <div class="info-value">{% if consulta.antecedentes_alergias %}{{ consulta.antecedentes_alergias }}{% else %}No se refieren.{% endif %}</div>
-                </div>
-
-                <div class="info-block">
-                    <span class="info-label">Descripción del Problema</span>
-                    <div class="info-value">{% if consulta.descripcion_problema %}{{ consulta.descripcion_problema }}{% else %}Sin descripción detallada.{% endif %}</div>
-                </div>
-
-                <div class="info-block">
-                    <span class="info-label">Exploración Médica</span>
-                    <div class="info-value">{% if consulta.exploracion_medica %}{{ consulta.exploracion_medica }}{% else %}Exploración normal.{% endif %}</div>
-                </div>
-
-                <div class="info-block">
-                    <span class="info-label">Pruebas Solicitadas</span>
-                    <div class="info-value">{% if consulta.pruebas_solicitadas %}{{ consulta.pruebas_solicitadas }}{% else %}Ninguna solicitada.{% endif %}</div>
-                </div>
-
-                <!-- DIAGNÓSTICO DESTACADO -->
-                <div class="info-block juicio-clinico">
-                    <span class="info-label">Diagnóstico Principal Permanente</span>
-                    <div class="info-value">{{ consulta.diagnostico_principal }}</div>
-                </div>
-
-                <div class="info-block" style="grid-column: span 2;">
-                    <span class="info-label">Tratamiento y Pautas</span>
-                    <div class="info-value">{% if consulta.tratamiento_pautas %}{{ consulta.tratamiento_pautas }}{% else %}Sin pautas adicionales.{% endif %}</div>
-                </div>
-
-                <!-- SECCIÓN DE RECETA -->
-                {% if consulta.recetas.all %}
-                <div class="medication-box">
-                    <span class="info-label">💊 Plan Farmacológico Prescrito</span>
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Medicamento</th>
-                                <th>Posología / Pauta</th>
-                                <th>Duración</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for receta in consulta.recetas.all %}
-                            <tr>
-                                <td class="med-name">{{ receta.medicamento }}</td>
-                                <td>{{ receta.posologia }}</td>
-                                <td style="color: #6a737d;">{{ receta.duracion }}</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-                {% endif %}
-            </div>
-        </article>
-        {% endfor %}
-    {% else %}
-        <div style="background: white; padding: 60px; text-align: center; border-radius: 12px; border: 2px dashed #ddd;">
-            <p style="font-size: 1.2rem; color: #6c757d;">No existen entradas previas en este historial clínico.</p>
+    <div class="container">
+        
+        <div class="dashboard-header">
+            <h1>Historial Clínico Digital</h1>
+            <div class="badge status-C">Acceso Profesional</div>
         </div>
-    {% endif %}
-</div>
+
+        {% if consultas %}
+            {% for consulta in consultas %}
+            <article class="premium-card" style="padding: 0; overflow: hidden; margin-bottom: 40px;">
+                <!-- CABECERA DE LA CONSULTA -->
+                <header class="report-header">
+                    <div>
+                        <div style="font-size: 1.2rem; font-weight: 700; color: var(--primary);">
+                            {{ consulta.motivo_consulta }}
+                        </div>
+                        <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 5px;">
+                            <i class="fas fa-user-md"></i> Dr/a. {{ consulta.cita.medico.user.last_name }} ({{ consulta.cita.medico.especialidad }}) 
+                            <span style="margin: 0 10px;">|</span>
+                            <i class="fas fa-hospital"></i> {{ consulta.cita.centro.nombre }}
+                        </div>
+                    </div>
+                    <div style="text-align: right;">
+                        <span class="badge" style="background: #eff6ff; color: var(--primary); margin-bottom: 5px; display: inline-block;">
+                            {{ consulta.fecha_creacion|date:"d M Y — H:i" }}
+                        </span>
+                        <br>
+                        <a href="{% url 'descargar_informe_pdf' consulta.id %}" class="btn-cancel-soft">
+                            <i class="fas fa-file-pdf"></i> PDF
+                        </a>
+                    </div>
+                </header>
+
+                <!-- CUERPO DEL INFORME -->
+                <div class="report-grid">
+                    
+                    <div>
+                        <span class="info-label">Antecedentes y Alergias</span>
+                        <div class="info-value">{% if consulta.antecedentes_alergias %}{{ consulta.antecedentes_alergias }}{% else %}Sin hallazgos clínicos relevantes.{% endif %}</div>
+                    </div>
+
+                    <div>
+                        <span class="info-label">Descripción del Episodio</span>
+                        <div class="info-value">{% if consulta.descripcion_problema %}{{ consulta.descripcion_problema }}{% else %}No se detalla descripción adicional.{% endif %}</div>
+                    </div>
+
+                    <div style="grid-column: span 2; background: #f8fafc; padding: 20px; border-radius: var(--radius-md); border-left: 4px solid var(--secondary);">
+                        <span class="info-label" style="color: var(--secondary);">Diagnóstico Principal</span>
+                        <div class="info-value" style="font-weight: 700; font-size: 1.1rem;">{{ consulta.diagnostico_principal }}</div>
+                    </div>
+
+                    <div>
+                        <span class="info-label">Exploración Médica</span>
+                        <div class="info-value">{% if consulta.exploracion_medica %}{{ consulta.exploracion_medica }}{% else %}Normal.{% endif %}</div>
+                    </div>
+
+                    <div>
+                        <span class="info-label">Pruebas Auxiliares</span>
+                        <div class="info-value">{% if consulta.pruebas_solicitadas %}{{ consulta.pruebas_solicitadas }}{% else %}Ninguna.{% endif %}</div>
+                    </div>
+
+                    <div style="grid-column: span 2;">
+                        <span class="info-label">Plan de Tratamiento</span>
+                        <div class="info-value">{% if consulta.tratamiento_pautas %}{{ consulta.tratamiento_pautas }}{% else %}Sin pautas registradas.{% endif %}</div>
+                    </div>
+
+                    <!-- TABLA DE RECETAS -->
+                    {% if consulta.recetas.all %}
+                    <div style="grid-column: span 2; margin-top: 10px;">
+                        <span class="info-label"><i class="fas fa-pills"></i> Medicación Prescrita</span>
+                        <table class="medication-table">
+                            <thead>
+                                <tr>
+                                    <th>Medicamento</th>
+                                    <th>Pauta</th>
+                                    <th>Duración</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for receta in consulta.recetas.all %}
+                                <tr>
+                                    <td style="font-weight: 700; color: var(--primary);">{{ receta.medicamento }}</td>
+                                    <td>{{ receta.posologia }}</td>
+                                    <td style="color: var(--text-muted); font-size: 0.85rem;">{{ receta.duracion }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% endif %}
+                </div>
+            </article>
+            {% endfor %}
+        {% else %}
+            <div style="background: white; padding: 80px 20px; text-align: center; border-radius: var(--radius-md); border: 2px dashed #e2e8f0;">
+                <i class="fas fa-folder-open fa-3x" style="color: #cbd5e1; margin-bottom: 20px; display: block;"></i>
+                <h3 style="color: var(--text-muted);">Historial Clínico Vacío</h3>
+                <p style="color: #94a3b8; font-size: 0.9rem;">Este paciente no tiene antecedentes registrados en el sistema.</p>
+            </div>
+        {% endif %}
+    </div>
 
 </body>
 </html>

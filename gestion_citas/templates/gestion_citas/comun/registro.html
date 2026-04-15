@@ -1,262 +1,67 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Registro de Paciente - Hospital TFG</title>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <style>
-        :root {
-            --primary: #2563eb;
-            --primary-hover: #1d4ed8;
-            --secondary: #10b981;
-            --bg: #f1f5f9;
-            --card-bg: #ffffff;
-            --text-main: #1e293b;
-            --text-muted: #64748b;
-            --input-border: #e2e8f0;
-            --input-focus: rgba(37, 99, 235, 0.1);
-            --radius-lg: 24px;
-            --radius-md: 12px;
-        }
+{% extends 'gestion_citas/comun/base.html' %}
+{% load static %}
 
-        body {
-            font-family: 'Outfit', sans-serif;
-            background-color: var(--bg);
-            color: var(--text-main);
-            margin: 0;
-            padding: 40px 20px;
-        }
+{% block title %}Registro de Paciente - Hospital TFG{% endblock %}
 
-        .container {
-            max-width: 650px;
-            margin: 0 auto;
-        }
+{% block extra_head %}
+<style>
+    body {
+        background: linear-gradient(135deg, #eff6ff 0%, #e0f2fe 100%);
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 40px 20px !important;
+    }
+    .register-card {
+        background: white;
+        padding: 50px;
+        border-radius: var(--radius-lg);
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.1);
+        width: 100%;
+        max-width: 550px;
+        box-sizing: border-box;
+    }
+    form p { margin-bottom: 20px; }
+    form label { display: block; margin-bottom: 8px; font-weight: 700; color: var(--text-main); font-size: 0.9rem; }
+    form input, form select {
+        width: 100%;
+        padding: 12px 16px;
+        border: 1px solid #e2e8f0;
+        border-radius: var(--radius-md);
+        font-family: inherit;
+        font-size: 0.95rem;
+        box-sizing: border-box;
+    }
+    form input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1); }
+    .helptext { display: block; font-size: 0.75rem; color: var(--text-muted); margin-top: 5px; line-height: 1.4; }
+    .errorlist { color: #ef4444; list-style: none; padding: 0; margin: 10px 0; font-size: 0.85rem; font-weight: 600; }
+</style>
+{% endblock %}
 
-        .header {
-            text-align: center;
-            margin-bottom: 40px;
-        }
-
-        .logo {
-            font-size: 2.5rem;
-            color: var(--primary);
-            margin-bottom: 15px;
-        }
-
-        .premium-card {
-            background: var(--card-bg);
-            border-radius: var(--radius-lg);
-            padding: 40px;
-            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.05);
-            border: 1px solid rgba(255,255,255,0.8);
-        }
-
-        h2 { margin-bottom: 30px; font-weight: 700; text-align: center; }
-
-        .section-title {
-            font-size: 0.85rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            color: var(--primary);
-            margin: 35px 0 15px 0;
-            font-weight: 700;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            opacity: 0.8;
-        }
-
-        .section-title:first-of-type { margin-top: 0; }
-
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 600;
-            color: #475569;
-            font-size: 0.95rem;
-        }
-
-        .premium-input, select {
-            width: 100% !important;
-            height: 52px;
-            padding: 12px 16px;
-            border: 1px solid var(--input-border);
-            border-radius: var(--radius-md);
-            font-family: inherit;
-            font-size: 1rem;
-            background: #fcfdfe;
-            transition: all 0.2s ease;
-            box-sizing: border-box;
-        }
-
-        .premium-input:focus, select:focus {
-            outline: none;
-            border-color: var(--primary);
-            box-shadow: 0 0 0 4px var(--input-focus);
-            background: white;
-        }
-
-        /* GRID FIX for Name & Last Name */
-        .name-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-        }
-
-        @media (max-width: 640px) {
-            .name-row {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        .premium-btn {
-            width: 100%;
-            padding: 18px;
-            background: var(--primary);
-            color: white;
-            border: none;
-            border-radius: var(--radius-md);
-            font-size: 1.1rem;
-            font-weight: 600;
-            cursor: pointer;
-            margin-top: 30px;
-            transition: all 0.3s;
-        }
-
-        .premium-btn:hover {
-            background: var(--primary-hover);
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
-        }
-
-        .form-info {
-            background: #eff6ff;
-            padding: 15px;
-            border-radius: var(--radius-md);
-            margin-bottom: 25px;
-            font-size: 0.9rem;
-            color: #1e40af;
-            border-left: 4px solid var(--primary);
-        }
-
-        .footer-links {
-            text-align: center;
-            margin-top: 30px;
-            font-size: 0.95rem;
-            color: var(--text-muted);
-        }
-
-        .footer-links a {
-            color: var(--primary);
-            text-decoration: none;
-            font-weight: 600;
-        }
-
-        .errorlist {
-            color: #ef4444;
-            list-style: none;
-            padding: 0;
-            font-size: 0.85rem;
-            margin-bottom: 10px;
-        }
-    </style>
-</head>
-<body>
-
-    <div class="container">
-        <div class="header">
-            <div class="logo"><i class="fas fa-hospital-user"></i></div>
-            <p style="color: var(--text-muted);">Portal de Salud del Paciente</p>
+{% block content %}
+    <div class="register-card">
+        <div style="text-align: center; margin-bottom: 40px;">
+            <i class="fas fa-user-plus" style="font-size: 3rem; color: var(--primary); margin-bottom: 15px; display: block;"></i>
+            <h2 style="font-size: 1.8rem; font-weight: 800; margin: 0;">Crea tu Cuenta</h2>
+            <p style="color: var(--text-muted); margin-top: 8px;">Únete al sistema de gestión de salud inteligente.</p>
         </div>
 
-        <div class="premium-card">
-            <h2>Crear nueva cuenta</h2>
+        <form method="post">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <button type="submit" class="premium-btn" style="width: 100%; margin-top: 20px; padding: 16px;">
+                Registrarme Ahora
+            </button>
+        </form>
 
-            {% if messages %}
-                {% for message in messages %}
-                    <div class="form-info" style="border-left-color: {% if message.tags == 'success' %}var(--secondary){% else %}#ef4444{% endif %};">
-                        {{ message }}
-                    </div>
-                {% endfor %}
-            {% endif %}
-
-            <form method="post">
-                {% csrf_token %}
-
-                <div class="section-title"><i class="fas fa-id-card"></i> Identificación</div>
-                
-                <div class="form-group">
-                    <label>Nombre de Usuario (para entrar)</label>
-                    {{ form.username }}
-                    {% for error in form.username.errors %}
-                        <div class="errorlist">{{ error }}</div>
-                    {% endfor %}
-                </div>
-
-                <div class="form-group">
-                    <label>DNI / NIE</label>
-                    <input type="text" name="dni" class="premium-input" placeholder="12345678X" required>
-                    {% for error in form.dni.errors %}
-                        <div class="errorlist">{{ error }}</div>
-                    {% endfor %}
-                </div>
-
-                <div class="section-title"><i class="fas fa-user-edit"></i> Datos Personales</div>
-                
-                <div class="name-row">
-                    <div class="form-group">
-                        <label>Nombre</label>
-                        <input type="text" name="first_name" class="premium-input" placeholder="Tu nombre" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Apellidos</label>
-                        <input type="text" name="last_name" class="premium-input" placeholder="Tus apellidos" required>
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label>Fecha de Nacimiento</label>
-                    <input type="date" name="fecha_nacimiento" class="premium-input" required>
-                </div>
-
-                <div class="section-title"><i class="fas fa-envelope"></i> Contacto y Seguridad</div>
-
-                <div class="form-group">
-                    <label>Correo Electrónico</label>
-                    <input type="email" name="email" class="premium-input" placeholder="tu@email.com" required>
-                </div>
-
-                <div class="form-group">
-                    <label>Teléfono Móvil</label>
-                    <input type="text" name="telefono" class="premium-input" placeholder="600000000" required>
-                </div>
-
-                <div class="form-group">
-                    <label>Contraseña</label>
-                    <input type="password" name="password" class="premium-input" placeholder="Mínimo 8 caracteres" required>
-                </div>
-
-                <div class="section-title"><i class="fas fa-clock"></i> Preferencias</div>
-                <div class="form-group">
-                    <label>Horario preferido para adelantos</label>
-                    {{ form.preferencia_turno }}
-                </div>
-
-                <button type="submit" class="premium-btn">Registrarse y Continuar</button>
-            </form>
+        <div style="text-align: center; margin-top: 40px; font-size: 0.95rem; color: var(--text-muted);">
+            ¿Ya tienes cuenta? <a href="{% url 'login' %}" style="color: var(--primary); text-decoration: none; font-weight: 800;">Inicia sesión</a>
         </div>
-
-        <div class="footer-links">
-            ¿Ya tienes cuenta? <a href="{% url 'login' %}">Inicia sesión aquí</a>
+        <div style="text-align: center; margin-top: 20px;">
+            <a href="{% url 'index' %}" style="color: #94a3b8; text-decoration: none; font-size: 0.85rem; font-weight: 600;">
+                <i class="fas fa-arrow-left"></i> Volver al inicio
+            </a>
         </div>
     </div>
-
-</body>
-</html>
+{% endblock %}

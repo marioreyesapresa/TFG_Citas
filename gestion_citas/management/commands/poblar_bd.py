@@ -1,231 +1,133 @@
 import random
+import uuid
+import unicodedata
 from datetime import timedelta, date, datetime, time
 from django.core.management.base import BaseCommand
 from django.contrib.auth.models import User
 from django.utils import timezone
-import unicodedata
-from django.core.exceptions import ValidationError
+from django.db import transaction
 
 from gestion_citas.models import (
     Centro, Especialidad, Medico, Paciente, 
     HorarioMedico, Cita, EstadoCita, DURACION_CITA, 
-    ConfiguracionReasignacion, Turno, NivelUrgencia,
-    Notificacion, PropuestaReasignacion
+    Turno, NivelUrgencia, ConsultaMedica, Receta
 )
 
 class Command(BaseCommand):
-    help = 'Puebla la base de datos con 15 Médicos, 30 Pacientes y 150 Citas de prueba'
+    help = 'Seeder Pro v2.1: Puebla la base de datos con volumen profesional para demostración (TFG)'
 
     def handle(self, *args, **kwargs):
-        self.stdout.write(self.style.WARNING("=== INICIANDO BORRADO DE BASE DE DATOS LOCAL ==="))
+        self.stdout.write(self.style.WARNING("=== INICIANDO ESCALAMIENTO MASIVO DE DATOS (PRO v2.1) ==="))
         
-        # 1. LIMPIEZA
-        Cita.objects.all().delete()
-        PropuestaReasignacion.objects.all().delete()
-        Notificacion.objects.all().delete()
-        HorarioMedico.objects.all().delete()
-        Medico.objects.all().delete()
-        Paciente.objects.all().delete()
-        Especialidad.objects.all().delete()
-        Centro.objects.all().delete()
-        ConfiguracionReasignacion.objects.all().delete()
-
-        # Borrar todos los usuarios que no sean superuser
-        User.objects.filter(is_superuser=False).delete()
+        # 1. LIMPIEZA TOTAL
+        with transaction.atomic():
+            Receta.objects.all().delete()
+            ConsultaMedica.objects.all().delete()
+            Cita.objects.all().delete()
+            HorarioMedico.objects.all().delete()
+            Medico.objects.all().delete()
+            Paciente.objects.all().delete()
+            Especialidad.objects.all().delete()
+            Centro.objects.all().delete()
+            User.objects.filter(is_superuser=False).delete()
         
-        self.stdout.write(self.style.SUCCESS("Base de datos limpia."))
+        self.stdout.write(self.style.SUCCESS("Base de datos reseteada."))
 
-        # 2. CONFIGURACIÓN REASIGNACIÓN
-        ConfiguracionReasignacion.objects.create(
-            peso_urgencia=15.0,
-            peso_antiguedad=0.1,
-            prioridad_turno=10.0
-        )
-        self.stdout.write(self.style.SUCCESS("✓ Configuración de Reasignación creada."))
-
-        # 3. ENTIDADES BASE (Centros y Especialidades)
-        centros_nombres = ['Hospital Central', 'Clínica Norte']
-        centros = [Centro.objects.create(nombre=n) for n in centros_nombres]
-
-        especialidades_nombres = ['Pediatría', 'Dermatología', 'Medicina General']
-        especialidades = [Especialidad.objects.create(nombre=n) for n in especialidades_nombres]
-        # Nombres y apellidos comunes y reales (Al menos 45 para evitar repeticiones)
-        NOMBRES_COMUNES = [
-            'Laura', 'Marta', 'María', 'Lucía', 'Paula', 'Carmen', 'Ana', 'Daniela', 'Carla', 'Sara', 'Elena', 'Alba', 'Noelia',
-            'Alejandro', 'David', 'Daniel', 'Pablo', 'Javier', 'Álvaro', 'Carlos', 'Hugo', 'Manuel', 'Mario', 'Diego', 'Jorge', 'Adrián',
-            'Sofía', 'Valeria', 'Julia', 'Irene', 'Natalia', 'Raquel', 'Rosa', 'Teresa', 'Beatriz', 'Silvia', 'Patricia', 'Mónica', 
-            'Victoria', 'Rocío', 'Pilar', 'Blanca', 'Clara', 'Celia', 'Marcos', 'Iván', 'Sergio', 'Miguel', 'Juan', 'Antonio', 
-            'José', 'Francisco', 'Alberto', 'Rafael', 'Pedro', 'Luis', 'Fernando', 'Rubén', 'Víctor', 'Roberto', 'Raúl', 'Oscar', 'Ramón'
+        # 2. CATÁLOGO DE CENTROS (10)
+        centros_data = [
+            'Hospital Universitario Central', 'Clínica Santa María', 'Centro Médico Quirúrgico', 
+            'Hospital del Norte', 'Hospital del Sur', 'Clínica San José', 
+            'Policlínica Metropolitana', 'Centro de Salud Integral', 
+            'Hospital de la Esperanza', 'Clínica de Rehabilitación Avanzada'
         ]
-        
-        APELLIDOS_COMUNES = [
-            'García', 'Rodríguez', 'González', 'Fernández', 'López', 'Martínez', 'Sánchez', 'Pérez', 'Gómez', 'Martín', 
-            'Jiménez', 'Ruiz', 'Hernández', 'Díaz', 'Moreno', 'Muñoz', 'Álvarez', 'Romero', 'Alonso', 'Gutiérrez'
+        centros = [Centro.objects.create(nombre=n) for n in centros_data]
+
+        # 3. CATÁLOGO DE ESPECIALIDADES (15)
+        especialidades_data = [
+            'Cardiología', 'Traumatología', 'Dermatología', 'Neurología', 'Oftalmología', 
+            'Pediatría', 'Psiquiatría', 'Ginecología', 'Oncología', 'Urología', 
+            'Neumología', 'Endocrinología', 'Gastroenterología', 'Otorrinolaringología', 'Medicina Interna'
         ]
+        especialidades = [Especialidad.objects.create(nombre=n) for n in especialidades_data]
 
-        # Evitar repetir nombres barajando y sacando uno a uno
-        random.shuffle(NOMBRES_COMUNES)
+        # 4. BANCO DE NOMBRES
+        NOMBRES = ['Laura', 'Marta', 'Lucía', 'Paula', 'Ana', 'Elena', 'Alba', 'Sofía', 'Julia', 'Irene', 'Alejandro', 'David', 'Daniel', 'Pablo', 'Javier', 'Álvaro', 'Carlos', 'Manuel', 'Diego', 'Jorge', 'Adrián', 'Hugo', 'Iván', 'Sergio', 'Miguel', 'Juan', 'Luis', 'Víctor', 'Raúl', 'Oscar']
+        APELLIDOS = ['García', 'Rodríguez', 'González', 'Fernández', 'López', 'Martínez', 'Sánchez', 'Pérez', 'Gómez', 'Martín', 'Jiménez', 'Ruiz', 'Hernández', 'Díaz', 'Moreno', 'Muñoz', 'Álvarez', 'Romero', 'Alonso', 'Gutiérrez']
 
-        # 4. MÉDICOS (15 médicos con turnos divididos: Mañana y Tarde)
+        def generate_dni():
+            nums = "".join([str(random.randint(0, 9)) for _ in range(8)])
+            letras = "TRWAGMYFPDXBNJZSQVHLCKE"
+            return f"{nums}{letras[int(nums) % 23]}"
+
+        # 5. GENERACIÓN DE MÉDICOS (30)
         medicos = []
-        # Crear usuarios para médicos
-        start_date = timezone.now().date()
-        
-        for i in range(1, 16):
-            nombre = NOMBRES_COMUNES.pop()
-            apellido = f"{random.choice(APELLIDOS_COMUNES)} {random.choice(APELLIDOS_COMUNES)}"
-            clean_nombre = unicodedata.normalize('NFD', nombre).encode('ascii', 'ignore').decode('utf-8').lower().replace(' ', '')
-            
-            u = User.objects.create_user(
-                username=f'medico_{clean_nombre}',
-                password='password123',
-                first_name=nombre,
-                last_name=apellido
-            )
-            
-            # Asignación pseudoalematoria balanceada
-            centro = centros[i % len(centros)]
-            especialidad = especialidades[i % len(especialidades)]
-            
-            medico = Medico.objects.create(
-                user=u,
-                numero_colegiado=f'COL-{10000+i}',
-                especialidad=especialidad,
-                centro=centro
-            )
+        for i in range(30):
+            nom = random.choice(NOMBRES)
+            ape = f"{random.choice(APELLIDOS)} {random.choice(APELLIDOS)}"
+            u = User.objects.create_user(username=f"medico_{i}", password='password123', first_name=nom, last_name=ape)
+            medico = Medico.objects.create(user=u, numero_colegiado=f"COL-{20000+i}", especialidad=random.choice(especialidades), centro=random.choice(centros))
             medicos.append(medico)
+            for dia in range(5):
+                HorarioMedico.objects.create(medico=medico, dia_semana=dia, hora_inicio=time(8,0), hora_fin=time(14,0))
 
-            # Asignar Horario laboral: (M: 08:00-14:00, T: 15:00-21:00)
-            es_turno_manana = (i % 2 == 0)
-            hora_inicio = time(8, 0) if es_turno_manana else time(15, 0)
-            hora_fin = time(14, 0) if es_turno_manana else time(21, 0)
-            
-            # Asignar a trabajar de Lunes(0) a Viernes(4) o de Miércoles(2) a Domingo(6)
-            dias_trabajo = range(0, 5) if i % 3 != 0 else range(2, 7)
-            for dia in dias_trabajo:
-                HorarioMedico.objects.create(
-                    medico=medico,
-                    dia_semana=dia,
-                    hora_inicio=hora_inicio,
-                    hora_fin=hora_fin
-                )
-        
-        self.stdout.write(self.style.SUCCESS(f"✓ {len(medicos)} Médicos y sus horarios creados."))
-
-        # 5. PACIENTES (30 pacientes)
+        # 6. GENERACIÓN DE PACIENTES (100)
         pacientes = []
-        turnos_choice = [Turno.MANANA, Turno.TARDE]
-        for i in range(1, 31):
-            nombre_p = NOMBRES_COMUNES.pop()
-            apellido_p = f"{random.choice(APELLIDOS_COMUNES)} {random.choice(APELLIDOS_COMUNES)}"
-            clean_nombre_p = unicodedata.normalize('NFD', nombre_p).encode('ascii', 'ignore').decode('utf-8').lower().replace(' ', '')
+        for i in range(100):
+            nom = random.choice(NOMBRES)
+            ape = f"{random.choice(APELLIDOS)} {random.choice(APELLIDOS)}"
+            u = User.objects.create_user(username=f"paciente_{i}", password='password123', first_name=nom, last_name=ape)
+            pacientes.append(Paciente.objects.create(user=u, dni=generate_dni(), telefono=f"6{random.randint(10000000, 99999999)}"))
 
-            u = User.objects.create_user(
-                username=f'paciente_{clean_nombre_p}',
-                password='password123',
-                email=f'tfgcitas+paciente{i}@gmail.com', # Todo llega a tfgcitas@gmail.com
-                first_name=nombre_p,
-                last_name=apellido_p
-            )
-            paciente = Paciente.objects.create(
-                user=u,
-                telefono=f'600100{i:03d}',
-                preferencia_turno=random.choice(turnos_choice)
-            )
-            pacientes.append(paciente)
-            
-        self.stdout.write(self.style.SUCCESS(f"✓ {len(pacientes)} Pacientes creados."))
-
-        # 6. GENERAR 150 CITAS VALIDAS
-        self.stdout.write("Generando 150 citas (Puede tardar unos segundos)...")
-        citas_creadas = 0
-        intentos = 0
-        estados_citas = [EstadoCita.CONFIRMADA] * 90 
-
-        slots_ocupados_medico = set()
-        slots_ocupados_paciente = set()
-
-        # Generar fechas objetivo: Desde hoy hasta 15 días en el futuro
-        fechas_disponibles = [start_date + timedelta(days=x) for x in range(0, 15)]
-
-        while citas_creadas < 150 and intentos < 2000:
-            intentos += 1
+        # 7. GENERACIÓN DE CITAS (250+)
+        self.stdout.write("Generando citas...")
+        hoy = timezone.now().date()
+        citas_creadas = []
+        
+        for i in range(270):
+            # Para evitar el error de "citas en el pasado", creamos todas para HOY o FUTURO
+            # y luego "bajamos" las que interesen al pasado mediante .update()
             medico = random.choice(medicos)
             paciente = random.choice(pacientes)
-            fecha = random.choice(fechas_disponibles)
             
-            # Buscar horario de ese médico en ese día
-            dia_semana = fecha.weekday()
-            horario = HorarioMedico.objects.filter(medico=medico, dia_semana=dia_semana).first()
-            if not horario:
-                continue
-
-            # Generar lista de horas posibles desde inicio hasta fin -30min
-            dt_dummy = datetime.combine(fecha, horario.hora_inicio)
-            dt_fin = datetime.combine(fecha, horario.hora_fin)
-            colas_horas = []
+            # Buscamos un hueco válido para este médico (L-V, 8-14)
+            fecha_futura = hoy + timedelta(days=random.randint(0, 60))
+            if fecha_futura.weekday() > 4: fecha_futura -= timedelta(days=2) # Evitar findes
             
-            while dt_dummy < dt_fin:
-                colas_horas.append(dt_dummy.time())
-                dt_dummy += timedelta(minutes=DURACION_CITA)
-
-            if not colas_horas:
-                continue
-                
-            hora_inicio_cita = random.choice(colas_horas)
+            hora = time(random.choice(range(8, 14)), random.choice([0, 30]))
             
-            # Validaciones R14 (Unicidad para evitar AssertionError del clean())
-            llave_medico = (medico.id, fecha, hora_inicio_cita)
-            llave_paciente = (paciente.id, fecha, hora_inicio_cita)
+            if Cita.objects.filter(medico=medico, fecha=fecha_futura, hora_inicio=hora).exists(): continue
             
-            # Inmutabilidad Diaria Fuerte
-            llave_diaria_paciente = (paciente.id, fecha)
-            citas_hoy_paciente = sum(1 for p, f, _ in slots_ocupados_paciente if p == paciente.id and f == fecha)
-
-            if llave_medico in slots_ocupados_medico or llave_paciente in slots_ocupados_paciente or citas_hoy_paciente > 0:
-                continue
-
-            # Todo correcto, instanciar usando save() sin activar motor (desactivaremos trigger fake)
-            urgencia = random.choice([NivelUrgencia.BAJA, NivelUrgencia.MEDIA, NivelUrgencia.ALTA])
-            estado = random.choice(estados_citas)
-
-            # Inyectar
-            cita = Cita(
-                paciente=paciente,
-                medico=medico,
-                especialidad=medico.especialidad,
-                centro=medico.centro,
-                fecha=fecha,
-                hora_inicio=hora_inicio_cita,
-                urgencia=urgencia,
-                estado=estado
+            cita = Cita.objects.create(
+                paciente=paciente, medico=medico, especialidad=medico.especialidad, 
+                centro=medico.centro, fecha=fecha_futura, hora_inicio=hora,
+                urgencia=random.choice(NivelUrgencia.values), estado=EstadoCita.CONFIRMADA
             )
+            citas_creadas.append(cita)
+
+        # 8. "VIAJE EN EL TIEMPO" PARA INFORMES CLÍNICOS (30 Atendidas)
+        self.stdout.write("Simulando 30 consultas atendidas (Viaje en el tiempo)...")
+        citas_para_atender = citas_creadas[:30]
+        DATOS_CLINICOS = [
+            ("Faringoamigdalitis", "Dolor al tragar", "Ibuprofeno 600mg", "Amoxicilina"),
+            ("Esguince", "Dolor tras caída", "Vendaje y frío", "Enantyum"),
+            ("Control HT", "Revisión tensión", "Seguir dieta", "Enalapril")
+        ]
+
+        for cita in citas_para_atender:
+            fecha_pasada = hoy - timedelta(days=random.randint(1, 15))
+            if fecha_pasada.weekday() > 4: fecha_pasada -= timedelta(days=2)
             
-            # Ignoramos full_clean por ahora para inyección masiva segura, 
-            # o si usamos save() asume estado nuevo (no anterior cancelado), no disparará motor
-            try:
-                cita.save()
-                slots_ocupados_medico.add(llave_medico)
-                slots_ocupados_paciente.add(llave_paciente)
-                citas_creadas += 1
-            except Exception as e:
-                pass # Ignoramos falls raros de validación cruzada y probamos el siguiente loop
-
-        self.stdout.write(self.style.SUCCESS(f"✓ {citas_creadas} Citas inyectadas (Confirmadas/Pendientes)."))
-
-        # 7. INYECCIÓN DELIBERADA DE CANCELACIONES PARA PRUEBAS DEL MOTOR
-        # Tomaremos unas 10 citas futuras existentes confirmadas y forzaremos la cancelación (lo que arrancará tu motor via post_save)
-        citas_futuras_a_cancelar = Cita.objects.filter(
-            fecha__gt=start_date, 
-            estado=EstadoCita.CONFIRMADA
-        )[:10]
-
-        canceladas_count = 0
-        for cita_c in citas_futuras_a_cancelar:
-            cita_c.estado = EstadoCita.CANCELADA
-            # Esto ejecutará `algoritmo_reasignacion.py` automáticamente imprimiendo logs
-            cita_c.save() 
-            canceladas_count += 1
+            # Bypass de validaciones mediante update()
+            Cita.objects.filter(id=cita.id).update(fecha=fecha_pasada, estado=EstadoCita.ATENDIDA)
+            cita.refresh_from_db()
             
-        self.stdout.write(self.style.SUCCESS(f"✓ {canceladas_count} Citas forzadas a CANCELADA para arrancar motor."))
+            motivo, desc, plan, med = random.choice(DATOS_CLINICOS)
+            consulta = ConsultaMedica.objects.create(
+                cita=cita, motivo_consulta=motivo, 
+                descripcion_problema=f"{desc}. Evolución favorable.",
+                diagnostico_principal=f"Paciente con {motivo.lower()}.",
+                tratamiento_pautas=plan
+            )
+            Receta.objects.create(consulta=consulta, medicamento=med, posologia="1 cada 8h", duracion="1 semana")
+
         self.stdout.write(self.style.SUCCESS("=== POBLACIÓN FINALIZADA CON ÉXITO ==="))

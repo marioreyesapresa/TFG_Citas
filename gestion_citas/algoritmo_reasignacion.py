@@ -132,7 +132,7 @@ def iniciar_reasignacion(cita_cancelada):
 
     # 5. GENERACIÓN DE LA PROPUESTA Y NOTIFICACIÓN
     if mejor_candidato:
-        print(f"🏆 GANADOR: {mejor_candidato.paciente} (Score: {mejor_puntuacion:.2f})")
+        print(f"🏆 GANADOR: {mejor_candidato.paciente} [Usuario: {mejor_candidato.paciente.user.username}] (Score: {mejor_puntuacion:.2f})")
         
         # Crear la propuesta
         propuesta = PropuestaReasignacion.objects.create(

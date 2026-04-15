@@ -20,6 +20,27 @@ def perfil_paciente(request):
         return redirect('dashboard')
     
     paciente = request.user.paciente
+ 
+    # --- MAGIA UX: Confirmación automática tras Login/Registro ---
+    cita_pendiente = request.session.get('cita_pendiente')
+    if cita_pendiente:
+        try:
+            medico = Medico.objects.get(id=cita_pendiente['medico_id'])
+            nueva_cita = Cita.objects.create(
+                paciente=paciente,
+                medico=medico,
+                especialidad=medico.especialidad,
+                centro=medico.centro,
+                fecha=cita_pendiente['fecha'],
+                hora_inicio=cita_pendiente['hora'],
+                estado=EstadoCita.CONFIRMADA
+            )
+            del request.session['cita_pendiente']
+            messages.success(request, f"¡Hola {request.user.first_name}! Tu sesión se ha iniciado y hemos confirmado la cita que habías seleccionado.")
+            return render(request, 'gestion_citas/paciente/cita_confirmada.html', {'cita': nueva_cita})
+        except Exception as e:
+            logger.error(f"Error al asignar cita pendiente tras login: {e}")
+            del request.session['cita_pendiente']
 
     # Manejo del Formulario de Ajustes (vía Modal)
     if request.method == 'POST' and 'ajustes_perfil' in request.POST:
@@ -33,7 +54,7 @@ def perfil_paciente(request):
     
     citas = Cita.objects.filter(
         paciente=paciente
-    ).select_related('medico__user', 'centro', 'consulta_medica').order_by('-fecha', '-hora_inicio')
+    ).select_related('medico__user', 'centro', 'consulta_medica').order_by('fecha', 'hora_inicio')
 
     ahora = timezone.now()
     PropuestaReasignacion.objects.filter(
@@ -114,6 +135,7 @@ def solicitar_cita(request):
                 messages.info(request, "Para confirmar tu cita, por favor inicia sesión o crea una cuenta.")
                 return redirect('login')
 
+            medico = Medico.objects.get(id=medico_id)
             nueva_cita = Cita(
                 paciente=request.user.paciente,
                 medico=medico,

@@ -44,6 +44,10 @@ def crear_consulta(request, cita_id):
                 instance.consulta = consulta
                 instance.save()
             
+            # Marcamos la cita como Atendida (Epic 4.4)
+            cita.estado = EstadoCita.ATENDIDA
+            cita.save()
+            
             messages.success(request, "¡Consulta registrada con éxito!")
             return redirect('perfil_medico')
     else:

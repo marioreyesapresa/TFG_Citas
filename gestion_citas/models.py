@@ -143,6 +143,7 @@ class EstadoCita(models.TextChoices):
     CONFIRMADA = 'C', 'Confirmada'
     CANCELADA = 'X', 'Cancelada'
     EN_ESPERA = 'R', 'En espera de reasignación'
+    ATENDIDA = 'A', 'Atendida'
 
 class Cita(models.Model):
     paciente = models.ForeignKey(Paciente, on_delete=models.CASCADE, related_name='citas')

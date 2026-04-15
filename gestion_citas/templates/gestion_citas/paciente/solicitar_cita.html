@@ -1,13 +1,9 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Solicitar Cita - Hospital TFG</title>
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+{% extends 'gestion_citas/comun/base.html' %}
+{% load static %}
+
+{% block title %}Solicitar Cita - Hospital TFG{% endblock %}
+
+{% block extra_head %}
     <!-- Flatpickr CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/material_blue.css">
@@ -16,84 +12,56 @@
     <link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet">
     
     <style>
-        :root {
-            --primary: #2563eb;
-            --primary-hover: #1d4ed8;
-            --secondary: #10b981;
-            --bg: #f8fafc;
-            --card-bg: #ffffff;
-            --text-main: #1e293b;
-            --text-muted: #64748b;
-            --input-border: #e2e8f0;
-            --input-focus: rgba(37, 99, 235, 0.1);
-            --radius-lg: 24px;
-            --radius-md: 12px;
+        /* Personalización de Tom Select para heredar variables del sistema Premium */
+        .ts-control {
+            border: 1px solid #e2e8f0 !important;
+            border-radius: var(--radius-md) !important;
+            padding: 12px 16px !important;
+            height: 52px !important;
+            background: #ffffff !important;
+            font-family: inherit !important;
+            font-size: 1rem !important;
+            display: flex !important;
+            align-items: center !important;
+            box-shadow: none !important;
+        }
+        .ts-wrapper.focus .ts-control {
+            border-color: var(--primary) !important;
+            box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1) !important;
+        }
+        .ts-dropdown {
+            border-radius: var(--radius-md) !important;
+            margin-top: 5px !important;
+            box-shadow: var(--card-shadow) !important;
+            border: 1px solid #f1f5f9 !important;
+        }
+        .ts-dropdown .active {
+            background-color: var(--primary) !important;
+            color: white !important;
         }
 
-        body {
-            font-family: 'Outfit', sans-serif;
-            background-color: var(--bg);
-            color: var(--text-main);
-            margin: 0;
-            padding: 40px 20px;
-        }
-
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-        }
-
-        .btn-back {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            text-decoration: none;
-            color: var(--text-muted);
-            font-weight: 600;
-            margin-bottom: 20px;
-            transition: color 0.3s;
-        }
-
-        .btn-back:hover { color: var(--primary); }
-
-        .premium-card {
-            background: var(--card-bg);
-            border-radius: var(--radius-lg);
-            padding: 40px;
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05);
-            border: 1px solid rgba(255,255,255,0.8);
-        }
-
-        h2 { font-size: 2rem; margin-bottom: 10px; font-weight: 700; color: var(--text-main); text-align: center; }
-        .subtitle { text-align: center; color: var(--text-muted); margin-bottom: 40px; }
-
-        .step-container {
-            margin-bottom: 30px;
-        }
-
+        .step-container { margin-bottom: 30px; }
         .step-title {
             font-size: 0.85rem;
             text-transform: uppercase;
             letter-spacing: 1px;
             color: var(--primary);
-            margin-bottom: 15px;
+            margin-bottom: 20px;
             font-weight: 700;
             display: flex;
             align-items: center;
-            gap: 10px;
-            opacity: 0.8;
+            gap: 12px;
         }
-
         .step-title span {
             background: var(--primary);
             color: white;
-            width: 24px;
-            height: 24px;
+            width: 28px;
+            height: 28px;
             display: flex;
             align-items: center;
             justify-content: center;
             border-radius: 50%;
-            font-size: 0.75rem;
+            font-size: 0.8rem;
         }
 
         .form-grid {
@@ -101,123 +69,18 @@
             grid-template-columns: 1fr 1fr;
             gap: 20px;
         }
-
-        @media (max-width: 640px) {
-            .form-grid { grid-template-columns: 1fr; }
-        }
-
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 600;
-            color: #475569;
-            font-size: 0.95rem;
-        }
-
-        /* Estilos base para cuando Tom Select no ha cargado */
-        select, .premium-input {
-            width: 100% !important;
-            height: 52px;
-            padding: 12px 16px;
-            border: 1px solid var(--input-border);
-            border-radius: var(--radius-md);
-            font-family: inherit;
-            font-size: 1rem;
-            background: #fcfdfe;
-            transition: all 0.2s ease;
-            box-sizing: border-box;
-        }
-
-        /* Personalización de Tom Select para que parezca Premium */
-        .ts-control {
-            border: 1px solid var(--input-border) !important;
-            border-radius: var(--radius-md) !important;
-            padding: 12px 16px !important;
-            height: 52px !important;
-            background: #fcfdfe !important;
-            font-family: 'Outfit', sans-serif !important;
-            font-size: 1rem !important;
-            display: flex !important;
-            align-items: center !important;
-            box-shadow: none !important;
-        }
-
-        .ts-wrapper.focus .ts-control {
-            border-color: var(--primary) !important;
-            box-shadow: 0 0 0 4px var(--input-focus) !important;
-            background: white !important;
-        }
-
-        .ts-dropdown {
-            border-radius: var(--radius-md) !important;
-            margin-top: 5px !important;
-            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1) !important;
-            border: 1px solid var(--input-border) !important;
-        }
-
-        .ts-dropdown .active {
-            background-color: var(--primary) !important;
-            color: white !important;
-        }
+        @media (max-width: 640px) { .form-grid { grid-template-columns: 1fr; } }
 
         .info-panel {
-            background: #eff6ff;
+            background: #f0f7ff;
             border-radius: var(--radius-md);
             padding: 20px;
-            border-left: 4px solid var(--primary);
+            border-left: 5px solid var(--primary);
             margin-top: 20px;
             display: none;
         }
-
-        .info-panel h4 {
-            color: #1e40af;
-            margin: 0 0 10px 0;
-            font-size: 1rem;
-            font-weight: 700;
-        }
-
-        .info-panel ul {
-            padding-left: 20px;
-            margin: 0;
-            font-size: 0.9rem;
-            color: #1e40af;
-            opacity: 0.9;
-        }
-
-        .premium-btn {
-            width: 100%;
-            padding: 18px;
-            background: var(--primary);
-            color: white;
-            border: none;
-            border-radius: var(--radius-md);
-            font-size: 1.1rem;
-            font-weight: 700;
-            cursor: pointer;
-            margin-top: 30px;
-            transition: all 0.3s;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .premium-btn:hover {
-            background: var(--primary-hover);
-            transform: translateY(-2px);
-            box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.3);
-        }
-
-        .premium-btn:disabled {
-            background: #94a3b8;
-            transform: none;
-            box-shadow: none;
-            cursor: not-allowed;
-        }
+        .info-panel h4 { color: #1e40af; margin: 0 0 10px 0; font-size: 1rem; }
+        .info-panel ul { padding-left: 20px; margin: 0; font-size: 0.9rem; color: #1e40af; }
 
         .error-alerta {
             background: #fef2f2;
@@ -231,17 +94,21 @@
             align-items: center;
         }
     </style>
-</head>
-<body>
+{% endblock %}
 
-    <div class="container">
-        <a href="{% url 'index' %}" class="btn-back">
+{% block content %}
+    <div class="container" style="max-width: 800px;">
+        <a href="{% url 'index' %}" class="btn-cancel-soft" style="margin-bottom: 30px;">
             <i class="fas fa-arrow-left"></i> Volver al inicio
         </a>
 
         <div class="premium-card">
-            <h2><i class="fas fa-calendar-check" style="color: var(--primary);"></i> Reserva tu Cita</h2>
-            <p class="subtitle">Selecciona los detalles para tu visita médica.</p>
+            <h2 style="text-align: center; font-size: 2rem; margin-bottom: 10px;">
+                <i class="fas fa-calendar-check" style="color: var(--primary);"></i> Reserva tu Cita
+            </h2>
+            <p style="text-align: center; color: var(--text-muted); margin-bottom: 40px;">
+                Selecciona los detalles para tu visita médica.
+            </p>
 
             {% if error_personalizado %}
                 <div class="error-alerta">
@@ -307,17 +174,19 @@
                     </div>
                 </div>
 
-                <button type="submit" id="btn-submit" class="premium-btn">
+                <button type="submit" id="btn-submit" class="premium-btn" style="width: 100%; margin-top: 20px;">
                     Confirmar Reserva <i class="fas fa-chevron-right"></i>
                 </button>
             </form>
         </div>
     </div>
+{% endblock %}
 
-    <!-- Scripts -->
+{% block extra_scripts %}
+    <!-- Flatpickr  -->
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/es.js"></script>
-    <!-- Tom Select JS -->
+    <!-- Tom Select -->
     <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
 
     {{ horarios_json|json_script:"horarios-data" }}
@@ -330,60 +199,32 @@
         let fp; 
         const tsInstances = {};
 
-        // Función para inicializar Tom Select de forma robusta
         function initTomSelect(id, settings = {}) {
             const el = document.getElementById(id);
             if (!el) return;
-            
-            const config = {
-                create: false,
-                sortField: { field: "text", direction: "asc" },
-                placeholder: el.options[0] ? el.options[0].text : "Seleccione...",
-                allowEmptyOption: true,
-                ...settings
-            };
-
-            if (tsInstances[id]) {
-                tsInstances[id].destroy();
-            }
+            const config = { create: false, sortField: { field: "text", direction: "asc" }, placeholder: el.options[0] ? el.options[0].text : "Seleccione...", allowEmptyOption: true, ...settings };
+            if (tsInstances[id]) { tsInstances[id].destroy(); }
             tsInstances[id] = new TomSelect(`#${id}`, config);
             return tsInstances[id];
         }
 
-        // Función para actualizar opciones usando la API de Tom Select
         function updateSelectOptions(id, options, placeholder = "Seleccione...") {
             const instance = tsInstances[id];
             if (!instance) return;
-
             instance.clear();
             instance.clearOptions();
-            
-            // Añadir el placeholder como opción vacía
             instance.addOption({value: "", text: placeholder});
-            
             if (options && options.length > 0) {
-                instance.addOptions(options.map(opt => ({
-                    value: opt.id || opt.value || opt,
-                    text: opt.nombre || opt.text || opt
-                })));
+                instance.addOptions(options.map(opt => ({ value: opt.id || opt.value || opt, text: opt.nombre || opt.text || opt })));
                 instance.enable();
-            } else {
-                instance.disable();
-            }
-            
+            } else { instance.disable(); }
             instance.setValue("");
         }
 
-        // Inicialización de todos los selects
         const selects = ['id_especialidad', 'id_centro', 'id_medico', 'id_hora'];
         selects.forEach(id => initTomSelect(id));
 
-        // DOM Elements
-        const espSelect = document.getElementById('id_especialidad');
-        const centroSelect = document.getElementById('id_centro');
-        const medicoSelect = document.getElementById('id_medico');
         const calendarioInput = document.getElementById('calendario');
-        const horaSelect = document.getElementById('id_hora');
         const infoDiv = document.getElementById('info-horario');
         const listaUl = document.getElementById('lista-horarios');
 
@@ -391,7 +232,6 @@
         const urlMedicos = "{% url 'ajax_cargar_medicos_esp_centro' %}";
         const urlHoras = "{% url 'ajax_cargar_horas' %}";
 
-        // Flatpickr
         fp = flatpickr("#calendario", {
             locale: "es", minDate: "today", dateFormat: "Y-m-d",
             disable: [function(date) { return true; }],
@@ -401,37 +241,26 @@
                     tsInstances['id_hora'].clearOptions();
                     tsInstances['id_hora'].addOption({value: "", text: "Cargando horas..."});
                     tsInstances['id_hora'].setValue("");
-
                     fetch(`${urlHoras}?medico=${medicoId}&fecha=${dateStr}`)
                         .then(response => response.json())
                         .then(data => {
                             if (data.horas && data.horas.length > 0) {
                                 updateSelectOptions('id_hora', data.horas, "-- Elige una hora --");
-                            } else {
-                                updateSelectOptions('id_hora', [], "Sin huecos libres");
-                            }
+                            } else { updateSelectOptions('id_hora', [], "Sin huecos libres"); }
                         });
                 }
             }
         });
 
-        // EVENTOS USANDO LA API DE TOM SELECT
-        
         tsInstances['id_especialidad'].on('change', function(eid) {
             updateSelectOptions('id_centro', [], "Cargando centros...");
             updateSelectOptions('id_medico', [], "-- Selecciona Centro primero --");
             resetCalendario();
-
             if (eid) {
-                fetch(`${urlCentros}?especialidad_id=${eid}`)
-                    .then(r => r.json())
-                    .then(data => {
-                        if (data.centros && data.centros.length > 0) {
-                            updateSelectOptions('id_centro', data.centros, "-- Elige Centro --");
-                        } else {
-                            updateSelectOptions('id_centro', [], "Sin centros");
-                        }
-                    });
+                fetch(`${urlCentros}?especialidad_id=${eid}`).then(r => r.json()).then(data => {
+                    if (data.centros && data.centros.length > 0) { updateSelectOptions('id_centro', data.centros, "-- Elige Centro --"); }
+                    else { updateSelectOptions('id_centro', [], "Sin centros"); }
+                });
             }
         });
 
@@ -439,17 +268,11 @@
             const eid = tsInstances['id_especialidad'].getValue();
             updateSelectOptions('id_medico', [], "Cargando médicos...");
             resetCalendario();
-
             if (cid && eid) {
-                fetch(`${urlMedicos}?especialidad_id=${eid}&centro_id=${cid}`)
-                    .then(r => r.json())
-                    .then(data => {
-                        if (data.medicos && data.medicos.length > 0) {
-                            updateSelectOptions('id_medico', data.medicos, "-- Elige Médico --");
-                        } else {
-                            updateSelectOptions('id_medico', [], "Sin médicos");
-                        }
-                    });
+                fetch(`${urlMedicos}?especialidad_id=${eid}&centro_id=${cid}`).then(r => r.json()).then(data => {
+                    if (data.medicos && data.medicos.length > 0) { updateSelectOptions('id_medico', data.medicos, "-- Elige Médico --"); }
+                    else { updateSelectOptions('id_medico', [], "Sin médicos"); }
+                });
             }
         });
 
@@ -486,5 +309,4 @@
             fp.set("disable", [function(date) { return true; }]);
         }
     </script>
-</body>
-</html>
+{% endblock %}
