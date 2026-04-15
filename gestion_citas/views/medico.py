@@ -6,7 +6,9 @@ from ..models import Cita, Medico
 def perfil_medico(request):
     try:
         medico = request.user.medico 
-        citas = Cita.objects.filter(medico=medico).order_by('fecha', 'hora_inicio')
+        citas = Cita.objects.filter(medico=medico).select_related(
+            'consulta_medica', 'paciente__user', 'centro'
+        ).order_by('fecha', 'hora_inicio')
         return render(request, 'gestion_citas/medico/perfil_medico.html', {
             'citas': citas,
             'medico': medico 

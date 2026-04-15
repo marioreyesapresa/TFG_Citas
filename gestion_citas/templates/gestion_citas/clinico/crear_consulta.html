@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Informe Clínico Profesional - Hospital TFG</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f0f2f5; padding: 20px; color: #1c1e21; }
+        .container { max-width: 900px; margin: auto; }
+        
+        /* Header Estilo Hospital */
+        .medical-header { background: #fff; padding: 20px; border-radius: 10px 10px 0 0; border-bottom: 4px solid #0056b3; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .medical-header h2 { margin: 0; color: #0056b3; font-size: 1.5rem; }
+        .patient-summary { background: #e7f3ff; padding: 15px; border-radius: 0 0 10px 10px; margin-bottom: 25px; font-size: 0.95rem; display: flex; gap: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+
+        /* Secciones del Formulario (Estilo Accordion/Cards) */
+        .form-section { background: #fff; border-radius: 8px; padding: 0; margin-bottom: 20px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border: 1px solid #ddd; }
+        .section-title { background: #f8f9fa; padding: 15px 20px; border-bottom: 1px solid #eee; font-weight: bold; color: #4b4f56; display: flex; align-items: center; gap: 10px; cursor: pointer; }
+        .section-title:hover { background: #f0f2f5; }
+        .section-content { padding: 20px; }
+
+        .form-group { margin-bottom: 15px; }
+        label { display: block; font-weight: 600; margin-bottom: 8px; color: #4b4f56; font-size: 0.9rem; }
+        .form-control { width: 100%; padding: 10px; border: 1px solid #ced4da; border-radius: 4px; box-sizing: border-box; font-family: inherit; font-size: 0.95rem; }
+        .form-control:focus { border-color: #0056b3; outline: none; box-shadow: 0 0 0 2px rgba(0,86,179,0.25); }
+        textarea.form-control { resize: vertical; min-height: 80px; }
+
+        /* Recetas Dinámicas */
+        .receta-row { background: #f9f9f9; border: 1px dashed #adb5bd; padding: 15px; border-radius: 6px; margin-bottom: 10px; }
+        .btn-add { background: #6c757d; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; font-weight: 600; margin-top: 5px; }
+        .btn-add:hover { background: #5a6268; }
+
+        /* Botón Guardar */
+        .actions { margin-top: 30px; text-align: right; }
+        .btn-save { background: #28a745; color: white; border: none; padding: 15px 40px; border-radius: 6px; font-size: 1.1rem; font-weight: bold; cursor: pointer; box-shadow: 0 4px 6px rgba(40,167,69,0.3); }
+        .btn-save:hover { background: #218838; transform: translateY(-1px); }
+        .btn-cancel { color: #6c757d; text-decoration: none; margin-right: 20px; font-weight: 600; }
+
+        /* Helper para secciones obligatorias */
+        .required-label::after { content: " *"; color: #dc3545; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <form method="post">
+        {% csrf_token %}
+        
+        <!-- HEADER MÉDICO -->
+        <div class="medical-header">
+            <h2>📄 Informe Clínico de Cita</h2>
+            <span style="color: #6c757d; font-weight: 600;">Ref: #{{ cita.id }}</span>
+        </div>
+        
+        <div class="patient-summary">
+            <div><strong>Paciente:</strong> {{ cita.paciente.user.get_full_name }}</div>
+            <div><strong>DNI/NHC:</strong> {{ cita.paciente.telefono }}</div>
+            <div><strong>Fecha:</strong> {{ cita.fecha|date:"d/m/Y" }}</div>
+        </div>
+
+        <!-- SECCIÓN 1: TRIAJE Y ANTECEDENTES -->
+        <div class="form-section">
+            <div class="section-title">🩺 1. Triaje y Antecedentes</div>
+            <div class="section-content">
+                <div class="form-group">
+                    <label class="required-label">Motivo de Consulta:</label>
+                    {{ form.motivo_consulta }}
+                </div>
+                <div class="form-group">
+                    <label>Antecedentes y Alergias (RAM):</label>
+                    {{ form.antecedentes_alergias }}
+                </div>
+                <div class="form-group">
+                    <label>Descripción del Problema (Enfermedad Actual):</label>
+                    {{ form.descripcion_problema }}
+                </div>
+            </div>
+        </div>
+
+        <!-- SECCIÓN 2: EXPLORACIÓN Y PRUEBAS -->
+        <div class="form-section">
+            <div class="section-title">🔍 2. Exploración y Pruebas</div>
+            <div class="section-content">
+                <div class="form-group">
+                    <label>Exploración Médica:</label>
+                    {{ form.exploracion_medica }}
+                </div>
+                <div class="form-group">
+                    <label>Pruebas Solicitadas (Analítica, Rx...):</label>
+                    {{ form.pruebas_solicitadas }}
+                </div>
+            </div>
+        </div>
+
+        <!-- SECCIÓN 3: DIAGNÓSTICO Y PLAN -->
+        <div class="form-section">
+            <div class="section-title">📋 3. Diagnóstico y Plan</div>
+            <div class="section-content">
+                <div class="form-group">
+                    <label class="required-label">Diagnóstico Principal:</label>
+                    {{ form.diagnostico_principal }}
+                </div>
+                <div class="form-group">
+                    <label>Tratamiento y Pautas:</label>
+                    {{ form.tratamiento_pautas }}
+                </div>
+                <div class="form-group">
+                    <label>Observaciones Internas (No visibles para el paciente):</label>
+                    {{ form.observaciones }}
+                </div>
+            </div>
+        </div>
+
+        <!-- SECCIÓN 4: RECETA MÉDICA (DYNAMIC) -->
+        <div class="form-section">
+            <div class="section-title">💊 4. Prescripción Farmacológica</div>
+            <div class="section-content">
+                {{ formset.management_form }}
+                <div id="recetas-container">
+                    {% for receta_form in formset %}
+                    <div class="receta-row">
+                        <div style="display: flex; gap: 15px; margin-bottom: 10px;">
+                            <div style="flex: 2;">
+                                <label>Medicamento:</label>
+                                {{ receta_form.medicamento }}
+                            </div>
+                            <div style="flex: 1;">
+                                <label>Posología:</label>
+                                {{ receta_form.posologia }}
+                            </div>
+                            <div style="flex: 1;">
+                                <label>Duración:</label>
+                                {{ receta_form.duracion }}
+                            </div>
+                        </div>
+                        {% if formset.can_delete %}
+                        <div style="text-align: right; color: #dc3545; font-size: 0.8rem;">
+                            ¿Borrar? {{ receta_form.DELETE }}
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+                <button type="button" id="add-receta-btn" class="btn-add">+ Añadir otro fármaco</button>
+            </div>
+        </div>
+
+        <!-- ACCIONES FINALES -->
+        <div class="actions">
+            <a href="{% url 'perfil_medico' %}" class="btn-cancel">Descartar Cambios</a>
+            <button type="submit" class="btn-save">💾 Finalizar Informe Clínico</button>
+        </div>
+    </form>
+</div>
+
+<!-- TEMPLATE PARA CLONAR (HIDDEN) -->
+<div id="empty-form-template" style="display: none;">
+    <div class="receta-row">
+        <div style="display: flex; gap: 15px; margin-bottom: 10px;">
+            <div style="flex: 2;">
+                <label>Medicamento:</label>
+                {{ formset.empty_form.medicamento }}
+            </div>
+            <div style="flex: 1;">
+                <label>Posología:</label>
+                {{ formset.empty_form.posologia }}
+            </div>
+            <div style="flex: 1;">
+                <label>Duración:</label>
+                {{ formset.empty_form.duracion }}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Lógica para añadir filas de recetas dinámicamente
+    document.getElementById('add-receta-btn').addEventListener('click', function() {
+        const container = document.getElementById('recetas-container');
+        const totalForms = document.getElementById('id_recetas-TOTAL_FORMS');
+        const count = parseInt(totalForms.value);
+        
+        const template = document.getElementById('empty-form-template').innerHTML;
+        const newHtml = template.replace(/__prefix__/g, count);
+        
+        const div = document.createElement('div');
+        div.innerHTML = newHtml;
+        container.appendChild(div);
+        
+        totalForms.value = count + 1;
+    });
+
+    // Opcional: Soporte simple para abrir/cerrar secciones si se desea
+    document.querySelectorAll('.section-title').forEach(header => {
+        header.addEventListener('click', () => {
+            const content = header.nextElementSibling;
+            content.style.display = content.style.display === 'none' ? 'block' : 'none';
+        });
+    });
+</script>
+
+</body>
+</html>

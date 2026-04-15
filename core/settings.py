@@ -16,7 +16,14 @@ SECRET_KEY = 'django-insecure--0o*o#_p!l-d&a@ovw#x4352@fe!4gh%o^=$d!%j8=wptkj0fe
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['*', 'tfg-citas-791788503447.europe-west1.run.app']
+ALLOWED_HOSTS = [
+    host.strip()
+    for host in os.environ.get(
+        'DJANGO_ALLOWED_HOSTS',
+        'tfg-citas-791788503447.europe-west1.run.app,localhost,127.0.0.1,192.168.1.2'
+    ).split(',')
+    if host.strip()
+]
 
 # Esta es la línea clave para quitar el error "Prohibido (403)"
 CSRF_TRUSTED_ORIGINS = ['https://tfg-citas-791788503447.europe-west1.run.app']
@@ -155,14 +162,19 @@ EMAIL_HOST_USER = 'tfgcitas@gmail.com'
 # EVITAR FILTRACIONES EN GITHUB (Epic 3 - Seguridad)
 # Cargamos la contraseña desde un archivo .env local (excluido en .gitignore)
 EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
+SITE_BASE_URL = os.environ.get('SITE_BASE_URL', 'http://127.0.0.1:8000')
 
 # Mini-helper para leer .env sin dependencias externas si existe
 dotenv_path = os.path.join(BASE_DIR, '.env')
 if os.path.exists(dotenv_path):
     with open(dotenv_path) as f:
         for line in f:
-            if line.startswith('EMAIL_HOST_PASSWORD='):
-                EMAIL_HOST_PASSWORD = line.split('=', 1)[1].strip()
+            line_strip = line.strip()
+            if line_strip.startswith('EMAIL_HOST_PASSWORD='):
+                EMAIL_HOST_PASSWORD = line_strip.split('=', 1)[1]
+            elif line_strip.startswith('SITE_BASE_URL='):
+                SITE_BASE_URL = line_strip.split('=', 1)[1]
+
 
 DEFAULT_FROM_EMAIL = 'tfgcitas@gmail.com'
 
@@ -175,3 +187,9 @@ DEFAULT_FROM_EMAIL = 'tfgcitas@gmail.com'
 # EMAIL_USE_TLS = True
 # EMAIL_HOST_USER = 'tu_correo@gmail.com'
 # EMAIL_HOST_PASSWORD = 'tu_contraseña_de_aplicacion'
+
+# ==========================================
+# CONFIGURACIÓN DE ARCHIVOS ESTÁTICOS (PRODUCCIÓN)
+# ==========================================
+STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')

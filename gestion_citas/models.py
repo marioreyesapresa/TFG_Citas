@@ -3,6 +3,7 @@ from django.db.models import Q
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 import datetime
+import uuid
 from datetime import timedelta
 
 DURACION_CITA = 30
@@ -340,3 +341,44 @@ class ConfiguracionReasignacion(models.Model):
 
     def __str__(self):
         return "Configuración Global del Motor"
+
+# ==========================================
+# 8. MÓDULO CLÍNICO
+# ==========================================
+class ConsultaMedica(models.Model):
+    cita = models.OneToOneField(Cita, on_delete=models.CASCADE, related_name='consulta_medica')
+    motivo_consulta = models.CharField(max_length=255)
+    
+    # --- NUEVOS CAMPOS PROFESIONALES (Epic 4.4 - Iteración II) ---
+    antecedentes_alergias = models.TextField(blank=True, null=True, help_text="RAM, antecedentes familiares...")
+    descripcion_problema = models.TextField(blank=True, null=True, help_text="Descripción narrativa del episodio...")
+    exploracion_medica = models.TextField(blank=True, null=True, help_text="Constantes y exploración por aparatos...")
+    pruebas_solicitadas = models.TextField(blank=True, null=True, help_text="Rx, Analíticas...")
+    
+    diagnostico_principal = models.TextField(blank=True, null=True, help_text="Diagnóstico final o presuntivo")
+    tratamiento_pautas = models.TextField(blank=True, null=True, help_text="Medidas generales, derivaciones, reposo...")
+    
+    # Token de seguridad para validación pública (Epic 4.6)
+    token_verificacion = models.UUIDField(default=uuid.uuid4, editable=False, unique=True, null=False)
+    
+    observaciones = models.TextField(blank=True, null=True, help_text="Notas de control interno")
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Consulta: {self.motivo_consulta} ({self.cita.paciente})"
+
+    def save(self, *args, **kwargs):
+        # Garantía Extra de Integridad (Copilot Feedback)
+        if not self.token_verificacion:
+            self.token_verificacion = uuid.uuid4()
+        super().save(*args, **kwargs)
+
+class Receta(models.Model):
+    consulta = models.ForeignKey(ConsultaMedica, on_delete=models.CASCADE, related_name='recetas')
+    medicamento = models.CharField(max_length=255)
+    posologia = models.CharField(max_length=255)
+    duracion = models.CharField(max_length=255)
+    activo = models.BooleanField(default=True)
+
+    def __str__(self):
+        return f"{self.medicamento} - {self.posologia}"
