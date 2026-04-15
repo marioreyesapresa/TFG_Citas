@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bienvenido - Hospital TFG</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --secondary: #10b981;
+            --bg-light: #f8fafc;
+            --text-main: #1e293b;
+            --glass-bg: rgba(255, 255, 255, 0.9);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: linear-gradient(135deg, #eff6ff 0%, #e0f2fe 100%);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        nav {
+            padding: 40px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        main {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .hero-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            padding: 60px;
+            border-radius: 30px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.1);
+            max-width: 900px;
+            width: 100%;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+
+        h1 {
+            font-size: 3rem;
+            margin-bottom: 20px;
+            background: linear-gradient(to right, #1e40af, #2563eb);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        p.subtitle {
+            font-size: 1.25rem;
+            color: #64748b;
+            margin-bottom: 50px;
+        }
+
+        .action-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+
+        .action-card {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            text-decoration: none;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 2px solid transparent;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .action-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+            border-color: var(--primary);
+        }
+
+        .icon-box {
+            width: 80px;
+            height: 80px;
+            background: #eff6ff;
+            border-radius: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 2rem;
+            color: var(--primary);
+            transition: all 0.3s;
+        }
+
+        .action-card:hover .icon-box {
+            background: var(--primary);
+            color: white;
+        }
+
+        .action-card h3 {
+            font-size: 1.5rem;
+            color: var(--text-main);
+        }
+
+        .action-card p {
+            color: #64748b;
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+
+        .btn-guest {
+            border-color: #e2e8f0;
+        }
+
+        .btn-login {
+            background: var(--primary);
+        }
+
+        .btn-login h3, .btn-login p { color: white !important; }
+        .btn-login .icon-box { background: rgba(255,255,255,0.2); color: white; }
+
+        @media (max-width: 640px) {
+            .action-grid {
+                grid-template-columns: 1fr;
+            }
+            .hero-card {
+                padding: 40px 20px;
+            }
+            h1 { font-size: 2rem; }
+        }
+
+        footer {
+            padding: 40px;
+            text-align: center;
+            color: #94a3b8;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+
+    <nav>
+        <div class="logo-container">
+            <i class="fas fa-hospital-user"></i>
+            <span>Hospital TFG</span>
+        </div>
+    </nav>
+
+    <main>
+        <div class="hero-card">
+            <h1>Cuidamos de lo que más importa</h1>
+            <p class="subtitle">Gestiona tus citas médicas de forma rápida y sencilla con nuestro sistema inteligente.</p>
+            
+            <div class="action-grid">
+                <a href="{% url 'solicitar_cita' %}" class="action-card btn-guest">
+                    <div class="icon-box">
+                        <i class="fas fa-calendar-plus"></i>
+                    </div>
+                    <h3>Pedir Cita Online</h3>
+                    <p>Busca profesional y reserva tu hueco en segundos. Sin registros iniciales.</p>
+                </a>
+
+                <a href="{% url 'login' %}" class="action-card btn-login">
+                    <div class="icon-box">
+                        <i class="fas fa-user-circle"></i>
+                    </div>
+                    <h3>Mi Área Privada</h3>
+                    <p>Accede a tus citas, descarga informes médicos y gestiona tu historial completo.</p>
+                </a>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        &copy; 2026 Plataforma de Salud TFG - Diseño Premium v2.0
+    </footer>
+
+</body>
+</html>

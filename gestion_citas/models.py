@@ -56,7 +56,9 @@ class Paciente(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='paciente')
     
     # Datos específicos del Paciente 
+    dni = models.CharField(max_length=9, unique=True, null=True, blank=True)
     telefono = models.CharField(max_length=15)
+    fecha_nacimiento = models.DateField(null=True, blank=True)
     preferencia_turno = models.CharField(
         max_length=1, 
         choices=Turno.choices, 
