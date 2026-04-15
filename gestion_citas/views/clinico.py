@@ -7,6 +7,7 @@ from io import BytesIO
 from xhtml2pdf import pisa
 import qrcode
 import base64
+from django.utils.text import slugify
 from ..models import Cita, ConsultaMedica, Receta, EstadoCita
 from ..forms import ConsultaForm, RecetaFormSet
 
@@ -119,7 +120,8 @@ def descargar_informe_pdf(request, consulta_id):
     
     if not pdf.err:
         response = HttpResponse(result.getvalue(), content_type='application/pdf')
-        filename = f"informe_{consulta.cita.paciente.user.last_name}_{consulta.id}.pdf"
+        apellido_safe = slugify(consulta.cita.paciente.user.last_name)
+        filename = f"informe_{apellido_safe}_{consulta.id}.pdf"
         response['Content-Disposition'] = f'attachment; filename="{filename}"'
         return response
     

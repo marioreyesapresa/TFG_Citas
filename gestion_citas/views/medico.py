@@ -11,7 +11,7 @@ def perfil_medico(request):
         # Todas las citas confirmadas/pendientes (Hoy + Futuro)
         citas_pendientes = Cita.objects.filter(
             medico=medico, 
-            estado=EstadoCita.CONFIRMADA,
+            estado__in=[EstadoCita.CONFIRMADA, EstadoCita.PENDIENTE],
             fecha__gte=timezone.localdate()
         ).select_related('paciente__user').order_by('fecha', 'hora_inicio')
         
