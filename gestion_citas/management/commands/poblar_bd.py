@@ -75,7 +75,13 @@ class Command(BaseCommand):
         for i in range(100):
             nom = random.choice(NOMBRES)
             ape = f"{random.choice(APELLIDOS)} {random.choice(APELLIDOS)}"
-            u = User.objects.create_user(username=f"paciente_{i}", password='password123', first_name=nom, last_name=ape)
+            u = User.objects.create_user(
+                username=f"paciente_{i}", 
+                password='password123', 
+                first_name=nom, 
+                last_name=ape,
+                email='tfgcitas@gmail.com'
+            )
             pacientes.append(Paciente.objects.create(user=u, dni=generate_dni(), telefono=f"6{random.randint(10000000, 99999999)}"))
 
         # 7. GENERACIÓN DE CITAS (250+)
