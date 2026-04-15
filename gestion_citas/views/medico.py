@@ -11,13 +11,14 @@ def perfil_medico(request):
         # Todas las citas confirmadas/pendientes (Hoy + Futuro)
         citas_pendientes = Cita.objects.filter(
             medico=medico, 
-            estado=EstadoCita.CONFIRMADA
+            estado=EstadoCita.CONFIRMADA,
+            fecha__gte=timezone.localdate()
         ).select_related('paciente__user').order_by('fecha', 'hora_inicio')
         
         # Historial de citas ya atendidas
         citas_atendidas = Cita.objects.filter(
             medico=medico, 
-            estado='A'
+            estado=EstadoCita.ATENDIDA
         ).select_related('paciente__user', 'consulta_medica').order_by('-fecha', '-hora_inicio')
 
         return render(request, 'gestion_citas/medico/perfil_medico.html', {

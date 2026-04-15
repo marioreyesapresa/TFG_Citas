@@ -35,12 +35,12 @@ def perfil_paciente(request):
                 hora_inicio=cita_pendiente['hora'],
                 estado=EstadoCita.CONFIRMADA
             )
-            del request.session['cita_pendiente']
             messages.success(request, f"¡Hola {request.user.first_name}! Tu sesión se ha iniciado y hemos confirmado la cita que habías seleccionado.")
             return render(request, 'gestion_citas/paciente/cita_confirmada.html', {'cita': nueva_cita})
         except Exception as e:
             logger.error(f"Error al asignar cita pendiente tras login: {e}")
-            del request.session['cita_pendiente']
+        finally:
+            request.session.pop('cita_pendiente', None)
 
     # Manejo del Formulario de Ajustes (vía Modal)
     if request.method == 'POST' and 'ajustes_perfil' in request.POST:
@@ -104,11 +104,13 @@ def registro_paciente(request):
                         hora_inicio=cita_pendiente['hora'],
                         estado=EstadoCita.CONFIRMADA
                     )
-                    del request.session['cita_pendiente']
                     messages.success(request, f"¡Bienvenido/a {user.first_name}! Tu cuenta ha sido creada y tu cita ha sido confirmada.")
                     return render(request, 'gestion_citas/paciente/cita_confirmada.html', {'cita': nueva_cita})
                 except Exception as e:
                     logger.error(f"Error al asignar cita pendiente tras registro: {e}")
+                    messages.warning(request, "Tu cuenta ha sido creada, pero no pudimos confirmar automáticamente la cita seleccionada. Por favor, solicítala de nuevo.")
+                finally:
+                    request.session.pop('cita_pendiente', None)
             
             messages.success(request, f"¡Bienvenido/a {user.first_name}! Tu cuenta ha sido creada con éxito.")
             return redirect('dashboard')

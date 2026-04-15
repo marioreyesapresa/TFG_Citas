@@ -1,16 +1,16 @@
 import random
-import uuid
-import unicodedata
-from datetime import timedelta, date, datetime, time
+from datetime import timedelta, time
 from django.core.management.base import BaseCommand
 from django.contrib.auth.models import User
 from django.utils import timezone
 from django.db import transaction
+from django.db.models.signals import post_delete
 
 from gestion_citas.models import (
     Centro, Especialidad, Medico, Paciente, 
     HorarioMedico, Cita, EstadoCita, DURACION_CITA, 
-    Turno, NivelUrgencia, ConsultaMedica, Receta
+    Turno, NivelUrgencia, ConsultaMedica, Receta,
+    procesar_borrado_cita
 )
 
 class Command(BaseCommand):
@@ -19,19 +19,25 @@ class Command(BaseCommand):
     def handle(self, *args, **kwargs):
         self.stdout.write(self.style.WARNING("=== INICIANDO ESCALAMIENTO MASIVO DE DATOS (PRO v2.1) ==="))
         
-        # 1. LIMPIEZA TOTAL
-        with transaction.atomic():
-            Receta.objects.all().delete()
-            ConsultaMedica.objects.all().delete()
-            Cita.objects.all().delete()
-            HorarioMedico.objects.all().delete()
-            Medico.objects.all().delete()
-            Paciente.objects.all().delete()
-            Especialidad.objects.all().delete()
-            Centro.objects.all().delete()
-            User.objects.filter(is_superuser=False).delete()
+        # 1. LIMPIEZA TOTAL (Desconectamos señales para evitar efectos secundarios)
+        post_delete.disconnect(receiver=procesar_borrado_cita, sender=Cita)
         
-        self.stdout.write(self.style.SUCCESS("Base de datos reseteada."))
+        try:
+            with transaction.atomic():
+                Receta.objects.all().delete()
+                ConsultaMedica.objects.all().delete()
+                Cita.objects.all().delete()
+                HorarioMedico.objects.all().delete()
+                Medico.objects.all().delete()
+                Paciente.objects.all().delete()
+                Especialidad.objects.all().delete()
+                Centro.objects.all().delete()
+                User.objects.filter(is_superuser=False).delete()
+            
+            self.stdout.write(self.style.SUCCESS("Base de datos reseteada (Modo Mantenimiento)."))
+        finally:
+            # Volvemos a conectar las señales para el funcionamiento normal posterior
+            post_delete.connect(receiver=procesar_borrado_cita, sender=Cita)
 
         # 2. CATÁLOGO DE CENTROS (10)
         centros_data = [
@@ -103,12 +109,16 @@ class Command(BaseCommand):
             
             if Cita.objects.filter(medico=medico, fecha=fecha_futura, hora_inicio=hora).exists(): continue
             
-            cita = Cita.objects.create(
-                paciente=paciente, medico=medico, especialidad=medico.especialidad, 
-                centro=medico.centro, fecha=fecha_futura, hora_inicio=hora,
-                urgencia=random.choice(NivelUrgencia.values), estado=EstadoCita.CONFIRMADA
-            )
-            citas_creadas.append(cita)
+            try:
+                cita = Cita.objects.create(
+                    paciente=paciente, medico=medico, especialidad=medico.especialidad, 
+                    centro=medico.centro, fecha=fecha_futura, hora_inicio=hora,
+                    urgencia=random.choice(NivelUrgencia.values), estado=EstadoCita.CONFIRMADA
+                )
+                citas_creadas.append(cita)
+            except Exception:
+                # Si hay colisión de paciente o cualquier otro error de validación, saltamos a la siguiente
+                continue
 
         # 8. "VIAJE EN EL TIEMPO" PARA INFORMES CLÍNICOS (30 Atendidas)
         self.stdout.write("Simulando 30 consultas atendidas (Viaje en el tiempo)...")
