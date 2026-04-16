@@ -281,3 +281,75 @@ label {
     align-items: center;
     gap: 12px;
 }
+
+/* 📱 ADAPTACIÓN MÓVIL (TFG feat/adaptacion-movil) */
+@media (max-width: 768px) {
+    .container {
+        padding-left: 5% !important;
+        padding-right: 5% !important;
+    }
+
+    /* 1. Reset de flexibilidad para contenedores principales */
+    .utility-bar, 
+    .dashboard-header, 
+    .report-header, 
+    .patient-card, 
+    .cita-card,
+    .patient-info {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 20px !important;
+    }
+
+    .utility-bar {
+        padding: 15px 5% !important;
+    }
+
+    /* 2. Botones y elementos interactivos a ancho completo */
+    .utility-bar-item, 
+    .premium-btn, 
+    .btn-outline,
+    .btn-outline-primary,
+    .btn-cancel-soft {
+        width: 100% !important;
+        justify-content: center !important;
+        margin-right: 0 !important;
+        box-sizing: border-box;
+    }
+
+    /* 3. Ajustes específicos del Perfil del Paciente */
+    .patient-info {
+        width: 100%;
+    }
+    .info-item {
+        width: 100%;
+        border-bottom: 1px solid #f1f5f9;
+        padding-bottom: 10px;
+    }
+    
+    .report-grid {
+        grid-template-columns: 1fr !important;
+        padding: 20px !important;
+    }
+
+    /* 4. Tablas Responsivas (Scroll Horizontal) */
+    table, .medication-table {
+        display: block !important;
+        width: 100% !important;
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch;
+        white-space: nowrap;
+    }
+
+    /* 5. Ajustes de tipografía y visuales para móviles */
+    h1 { font-size: 1.8rem !important; }
+    .logo { font-size: 2.5rem !important; }
+    .login-card { padding: 40px 20px !important; }
+    
+    .cita-time {
+        min-width: auto !important;
+        flex-direction: row !important;
+        gap: 15px;
+        align-items: center;
+    }
+}
