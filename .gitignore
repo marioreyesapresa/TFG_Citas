@@ -19,3 +19,6 @@ Thumbs.db
 
 # 5. Archivos de medios (si subieran fotos los usuarios)
 media/
+# 6. Reportes de Testing (Coverage)
+htmlcov/
+.coverage
