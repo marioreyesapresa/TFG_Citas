@@ -161,6 +161,10 @@ class Cita(models.Model):
         choices=EstadoCita.choices, 
         default=EstadoCita.CONFIRMADA
     )
+    nivel_cascada = models.IntegerField(
+        default=0,
+        help_text="Control de profundidad de la reacción en cadena (máx 5)"
+    )
 
     class Meta:
         ordering = ['fecha', 'hora_inicio']
@@ -247,10 +251,13 @@ class Cita(models.Model):
             # 1. Ejecutar validaciones 
             self.full_clean()
 
-            # 2. Detectar si es una cancelación
+            # 2. Detectar si es una cancelación (o creación de hueco libre)
             activar_motor = False
             
-            if self.pk: 
+            if not self.pk and self.estado == EstadoCita.CANCELADA:
+                # Caso: Creación de un hueco libre directamente (Ej: Reacción en cadena)
+                activar_motor = True
+            elif self.pk: 
                 cita_anterior = Cita.objects.get(pk=self.pk)
                 # Si NO estaba cancelada Y AHORA SÍ lo está...
                 if cita_anterior.estado != EstadoCita.CANCELADA and self.estado == EstadoCita.CANCELADA:

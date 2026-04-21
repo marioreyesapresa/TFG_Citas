@@ -36,6 +36,11 @@ def iniciar_reasignacion(cita_cancelada):
     """
     print(f"\n🚀 [MOTOR] Cita cancelada. Analizando hueco: {cita_cancelada.fecha} a las {cita_cancelada.hora_inicio} (Dr. {cita_cancelada.medico.user.last_name})")
 
+    # --- CIRCUIT BREAKER: Control de Reacción en Cadena ---
+    if cita_cancelada.nivel_cascada >= 5:
+        print(f"🛑 [MOTOR] Límite de cascada alcanzado (Nivel {cita_cancelada.nivel_cascada}). Deteniendo reevaluación para evitar saturación.")
+        return
+
     # 0. CARGAR CONFIGURACIÓN DINÁMICA
     config = ConfiguracionReasignacion.objects.first()
     if not config:
