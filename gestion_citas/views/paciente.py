@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 import logging
 
 from django.contrib.auth import login
-from ..models import Cita, Medico, Paciente, Especialidad, Centro, EstadoCita, PropuestaReasignacion, EstadoPropuesta, Notificacion
+from ..models import Cita, Medico, Paciente, Especialidad, Centro, EstadoCita, NivelUrgencia, PropuestaReasignacion, EstadoPropuesta, Notificacion
 from ..forms import PacienteForm
 from ..forms.registro import UserRegistrationForm
 
@@ -33,6 +33,7 @@ def perfil_paciente(request):
                 centro=medico.centro,
                 fecha=cita_pendiente['fecha'],
                 hora_inicio=cita_pendiente['hora'],
+                urgencia=cita_pendiente.get('urgencia', NivelUrgencia.BAJA),
                 estado=EstadoCita.CONFIRMADA
             )
             messages.success(request, f"¡Hola {request.user.first_name}! Tu sesión se ha iniciado y hemos confirmado la cita que habías seleccionado.")
@@ -103,6 +104,7 @@ def registro_paciente(request):
                         centro=medico.centro,
                         fecha=cita_pendiente['fecha'],
                         hora_inicio=cita_pendiente['hora'],
+                        urgencia=cita_pendiente.get('urgencia', NivelUrgencia.BAJA),
                         estado=EstadoCita.CONFIRMADA
                     )
                     messages.success(request, f"¡Bienvenido/a {user.first_name}! Tu cuenta ha sido creada y tu cita ha sido confirmada.")
@@ -127,13 +129,16 @@ def solicitar_cita(request):
         medico_id = request.POST.get('medico')
         fecha = request.POST.get('fecha')
         hora = request.POST.get('hora')
+        urgencia = request.POST.get('urgencia', NivelUrgencia.BAJA)
+
         try:
             if not request.user.is_authenticated:
                 # MAGIA UX: Guardar en sesión y pedir login/registro
                 request.session['cita_pendiente'] = {
                     'medico_id': medico_id,
                     'fecha': fecha,
-                    'hora': hora
+                    'hora': hora,
+                    'urgencia': urgencia
                 }
                 messages.info(request, "Para confirmar tu cita, por favor inicia sesión o crea una cuenta.")
                 return redirect('login')
@@ -146,6 +151,7 @@ def solicitar_cita(request):
                 centro=medico.centro,
                 fecha=fecha,
                 hora_inicio=hora,
+                urgencia=urgencia,
                 estado=EstadoCita.CONFIRMADA
             )
             nueva_cita.full_clean() 
@@ -174,6 +180,7 @@ def solicitar_cita(request):
         'medicos': medicos,
         'horarios_json': horarios_json,
         'resumen_horarios': resumen_horarios,
+        'niveles_urgencia': NivelUrgencia.choices,
         'error_personalizado': error_personalizado 
     })
 
