@@ -103,4 +103,5 @@ def run_test():
     print("🏁 PRUEBA DE REACCIÓN EN CADENA FINALIZADA")
     print("="*60)
 
-run_test()
+if __name__ == "__main__":
+    run_test()

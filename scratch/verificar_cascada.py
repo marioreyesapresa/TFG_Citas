@@ -128,4 +128,5 @@ def run_test():
     print("🏁 PRUEBA FINALIZADA CON ÉXITO")
     print("="*50)
 
-run_test()
+if __name__ == "__main__":
+    run_test()
