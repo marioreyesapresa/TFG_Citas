@@ -422,8 +422,6 @@ def procesar_borrado_cita(sender, instance, **kwargs):
                 estado=EstadoCita.CANCELADA # Lo marcamos como cancelado/libre
             )
             print(f"✨ [MOTOR] Se ha generado un registro de 'Hueco Libre' para sustituir la eliminación.")
-            
-            from .algoritmo_reasignacion import iniciar_reasignacion
-            iniciar_reasignacion(hueco_fantasma)
+            # Nota: El motor se activa ahora automáticamente en el .save() de hueco_fantasma
         except Exception as e:
             print(f"⚠️ [MOTOR] Error al procesar borrado: {e}")

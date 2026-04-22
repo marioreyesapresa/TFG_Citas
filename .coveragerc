@@ -1,0 +1,20 @@
+[run]
+source = gestion_citas
+omit = 
+    */migrations/*
+    */management/*
+    */apps.py
+    */admin.py
+    */urls.py
+    */tests/*
+    manage.py
+    core/*
+
+[report]
+show_missing = True
+precision = 2
+exclude_lines =
+    pragma: no cover
+    def __str__
+    if self.pk:
+    if __name__ == "__main__":

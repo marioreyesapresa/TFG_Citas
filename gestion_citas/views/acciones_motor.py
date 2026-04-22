@@ -2,10 +2,12 @@ from django.shortcuts import redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 from django.views.decorators.http import require_POST
+from django.db import transaction
 from ..models import Cita, EstadoCita, PropuestaReasignacion, EstadoPropuesta, Notificacion
 
 @login_required
 @require_POST
+@transaction.atomic
 def aceptar_propuesta(request, propuesta_id):
     if not hasattr(request.user, 'paciente'):
         # Si es admin o médico, redirigimos al dashboard
@@ -18,7 +20,8 @@ def aceptar_propuesta(request, propuesta_id):
         # --- REACCIÓN EN CADENA: Detectar Hueco Abandonado ---
         fecha_vieja = cita.fecha
         hora_vieja = cita.hora_inicio
-        nivel_viejo = cita.nivel_cascada
+        # El nivel de profundidad hereda del hueco que se ocupa + 1
+        nuevo_nivel_cascada = propuesta.hueco.nivel_cascada + 1
         
         # Movemos al paciente al nuevo hueco
         cita.fecha = propuesta.hueco.fecha
@@ -31,6 +34,10 @@ def aceptar_propuesta(request, propuesta_id):
         propuesta.estado = EstadoPropuesta.ACEPTADA
         propuesta.save()
 
+        # CONSUMO DEL HUECO: El registro 'CANCELADA' del hueco que acabamos de ocupar
+        # debe eliminarse para evitar duplicidades en el motor.
+        propuesta.hueco.delete()
+
         # LIBERACIÓN DEL HUECO VIEJO: Generamos un 'Hueco Fantasma' en la posición abandonada
         # para que el motor busque al siguiente candidato (Siguiente nivel de cascada)
         Cita.objects.create(
@@ -41,7 +48,7 @@ def aceptar_propuesta(request, propuesta_id):
             fecha=fecha_vieja,
             hora_inicio=hora_vieja,
             estado=EstadoCita.CANCELADA, # Marcado como libre
-            nivel_cascada=nivel_viejo + 1 # Incrementamos profundidad
+            nivel_cascada=nuevo_nivel_cascada # Incrementamos profundidad basado en la cadena
         )
     return redirect('perfil_paciente')
 
