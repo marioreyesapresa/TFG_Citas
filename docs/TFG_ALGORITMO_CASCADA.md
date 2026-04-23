@@ -58,3 +58,9 @@ A su vez, dispara el subsistema de notificaciones:
 La grandeza del mecanismo reside en lo reactivo que es ante la negativa de un usuario.
 Si el paciente ganador entra en su Panel Web y clica explícitamente en el botón de rechazo asíncrono, la función `rechazar_propuesta()` emite una alerta, cambia el estado de su entrada a *RECHAZADA* y consecuentemente **relanza de forma autónoma (recursiva) todo el motor algorítmico**. 
 En esa iteración nueva, el algoritmo "choca" limpiamente con la **Regla E.1** y descarta a este primer paciente, permitiendo que la oferta "descienda en cascada" hasta llegar al segundo paciente mejor clasificado, remitiéndole automáticamente su propia propuesta y correo.
+
+## 7. Mecanismo de Seguridad: El Circuit Breaker (Límite de Saltos)
+
+Aunque la recursividad en cascada es fundamental, un entorno de producción requiere límites para evitar la sobrecarga del servidor en agendas muy fragmentadas. El sistema incluye un mecanismo de *Circuit Breaker* (Cortocircuito).
+
+Se ha introducido un campo `nivel_cascada` en la base de datos (entidad Cita) que actúa como contador persistente. El Motor permite un máximo de **5 saltos consecutivos** en cascada por cada cancelación original. Una vez alcanzado el nivel 5, el algoritmo detiene la reacción en cadena, garantizando el máximo rendimiento del servidor y evitando avalanchas masivas de correos electrónicos a los pacientes.

@@ -1,8 +1,8 @@
-# 🏥 MANUAL DE USUARIO - SISTEMA DE REASIGNACIÓN INTELIGENTE (TFG)
+# 🏥 MANUAL DE USUARIO - PREMIUM v2.1 (TFG)
 
 **Acceso a la plataforma en vivo:** `https://tfgmarreyapr.pythonanywhere.com`
 
-Bienvenido al Manual de Usuario. Este sistema ha sido diseñado para optimizar las agendas médicas de los centros de salud mediante un **Motor de Reasignación en Cascada**. A continuación, se detalla el uso de la plataforma según los tres perfiles disponibles: Paciente, Administrativo y Médico.
+Bienvenido al Manual de Usuario de la **versión Premium v2.1**. Este sistema ha sido diseñado no solo para ser funcional mediante su **Motor de Reasignación en Cascada**, sino para ofrecer una experiencia de usuario moderna, intuitiva y plenamente adaptada a dispositivos móviles.
 
 ---
 
@@ -21,6 +21,16 @@ Para evaluar este prototipo, se ha precargado una base de datos con usuarios de 
 | **Médico 1** | `medico_pablo` | `password123` | Vista de agenda de consultas. |
 
 *(Nota: Existen decenas de pacientes y médicos precargados, todos utilizan la contraseña universal `password123` salvo el administrador `admin`, puediendo ver todos los usuarios en el panel de control `/admin`)*.
+
+---
+
+## 📱 2. INTERFAZ Y ACCESIBILIDAD (DISEÑO PREMIUM)
+
+La plataforma utiliza el sistema de diseño **Premium v2.1**, enfocado en la claridad visual y la facilidad de uso.
+
+*   **Diseño Adaptativo (Mobile First):** Puede acceder a la plataforma desde su smartphone o tablet. La interfaz se ajustará automáticamente, convirtiendo las tarjetas de citas y los menús en elementos fáciles de pulsar con el dedo.
+*   **Dashboards Inteligentes:** Cada perfil (Paciente, Médico, Administrativo) tiene su propio panel de control con la información crítica resaltada mediante tarjetas visuales (*Cards*) y etiquetas de colores (*Badges*).
+*   **Navegación Intuitiva:** El sistema utiliza la tipografía *Outfit* y una paleta de colores suaves para reducir la fatiga visual durante el uso prolongado.
 
 ---
 
@@ -93,3 +103,21 @@ Los médicos disponen de una interfaz libre de distracciones, enfocada únicamen
 1. Acceda a la plataforma e inicie sesión con una cuenta de médico (ej. `medico_pablo`).
 2. El sistema lo enrutará automáticamente a su **Dashboard Clínico**.
 3. Desde aquí, el médico puede visualizar su agenda de pacientes programados para los próximos días, reflejando siempre el estado real después de las reasignaciones automáticas que haya hecho el sistema.
+
+---
+
+## 🩺 5. INFORME CLÍNICO Y VALIDACIÓN POR QR
+
+Para garantizar la seguridad de sus datos y evitar el fraude en recetas, el sistema utiliza tecnología de sellado digital.
+
+### 5.1. Descarga de su Receta/Informe
+Tras su consulta, usted puede descargar su informe médico en formato PDF desde su Panel Personal. Este documento incluye el diagnóstico, el plan de tratamiento y la medicación prescrita.
+
+### 5.2. ¿Cómo funciona el Código QR?
+En la parte inferior de cada receta encontrará un **Código QR**. Este código permite a cualquier farmacia o centro sanitario verificar que el documento es auténtico.
+1. No es necesario que el farmacéutico tenga acceso a su cuenta.
+2. Al escanear el código, se abrirá una ventana de validación en el servidor oficial del hospital confirmando los datos de la receta.
+3. Esto protege su salud asegurando que solo se le suministre la medicación exacta prescrita por su médico.
+
+---
+*Manual Actualizado para la Defensa Final (Abril 2026).*

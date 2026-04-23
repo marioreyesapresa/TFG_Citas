@@ -31,6 +31,9 @@ Esta fase comprueba que los distintos roles (Administrativo, Médico y Paciente)
 ### Prueba 1.3: Acceso del Médico y Visión de Agenda (R9)
 1.  **Acción:** Cierra sesión en el Administrador y entra en la web principal (`https://tfgmarreyapr.pythonanywhere.com/`). Pulsa en "Acceder" e inicia sesión como un médico (ej. usuario: `medico_pablo`).
 2.  **Verificación:** El sistema te redirige a un Panel de Médico. Puedes ver tu agenda de citas confirmadas para los próximos días, diferenciadas del resto de la plataforma. **Cierra sesión al terminar.**
+### Prueba 1.4: Adaptabilidad Móvil (Responsive Design)
+1.  **Acción:** Accede a la web desde un teléfono móvil o reduce el tamaño de la ventana de tu navegador hasta que sea estrecha.
+2.  **Verificación:** Comprueba que los elementos de la agenda no se cortan, sino que se apilan verticalmente de forma ordenada. Los botones deben ocupar todo el ancho de la pantalla para facilitar la pulsación táctil.
 
 ---
 
@@ -100,5 +103,19 @@ Los pacientes que no leen su móvil no pueden bloquear la lista de espera hospit
     *   Busca el campo de "Fecha Oferta" y modifícalo simulando que se envió hace una semana. Dale a Guardar.
     *   El motor barrerá esta propuesta en su próximo ciclo y pasará sola a estado **"Expirada"**, relanzando la cascada hacia el paciente número 3 de la lista. (En la defensa, se puede forzar este barrido desde la terminal de servidores).
 
+## FASE 5: INTEGRIDAD DOCUMENTAL Y CÓDIGO QR
+Esta fase valida el mecanismo de seguridad "anti-fraude" para documentos médicos **(Requisitos de Seguridad Avanzada)**.
+
+### Prueba 5.1: Generación de Receta con QR
+1.  **Acción:** Inicia sesión como un médico (ej. `medico_pablo`).
+2.  Ve a tu agenda y entra en una cita pasada o crea una consulta nueva para un paciente.
+3.  En el apartado de "Tratamiento", añade un medicamento y pulsa en **"Generar Informe/Receta PDF"**.
+4.  **Verificación:** Se descarga un PDF profesional. Comprueba que en la parte inferior aparece un **Código QR** único.
+
+### Prueba 5.2: Validación Pública ("Modo Dios")
+1.  **Acción:** Escanea el código QR del PDF con la cámara de tu teléfono móvil (o usa un simulador de lectura de QR).
+2.  **Verificación:** El enlace te redirige a una página web pública de la clínica (sin necesidad de login).
+3.  Comprueba que la web muestra un **Sello de Validez Verde** y los datos exactos del medicamento que escribiste en el paso anterior. Esto demuestra que el documento es infalsificable.
+
 ---
-*Manual Creado como Entregable E2 de Documentación (Marzo 2026).*
+*Manual Actualizado para la Defensa Final (Abril 2026).*

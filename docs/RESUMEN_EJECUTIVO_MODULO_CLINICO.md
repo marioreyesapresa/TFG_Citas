@@ -29,7 +29,13 @@ La herencia médica ahora se presenta en un formato de **Informe Clínico Digita
 *   Resaltado del Diagnóstico Principal para identificación inmediata en situaciones de urgencia.
 *   Tabla resumen de la medicación prescrita integrada en cada episodio.
 
+## 5. Validación Pública mediante Código QR
+Se ha implementado una capa de seguridad crítica para el intercambio de información con terceros (farmacias):
+*   **Integridad Documental**: El PDF de la receta incluye un QR con una URL firmada unívoca.
+*   **Modo Dios**: El portal de validación permite consultar la fuente de verdad en el servidor sin comprometer la privacidad del resto de la historia clínica.
+*   **Prevención de Fraude**: Cualquier manipulación del PDF es detectable al comparar el papel con la respuesta del servidor oficial.
+
 ---
 
-**Fecha de entrega:** 05 de Abril de 2026  
-**Versión:** 1.3 "Informe Clínico Normalizado"
+**Fecha de entrega:** 22 de Abril de 2026  
+**Versión:** 1.5 "Informe Clínico Seguro con Validación QR"
