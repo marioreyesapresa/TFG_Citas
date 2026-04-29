@@ -12,14 +12,14 @@ class AdministrativoViewsTests(TestCase):
         self.esp = Especialidad.objects.create(nombre="EspTest")
         self.centro = Centro.objects.create(nombre="CentroTest")
         self.u_med = User.objects.create_user(username="med_test", password="123")
-        self.medico = Medico.objects.create(user=self.u_med, especialidad=self.esp, centro=self.centro)
+        self.medico = Medico.objects.create(user=self.u_med, especialidad=self.esp, centro=self.centro, numero_colegiado="123")
         
         from ..models import HorarioMedico
         for i in range(7):
             HorarioMedico.objects.create(medico=self.medico, dia_semana=i, hora_inicio=time(8, 0), hora_fin=time(20, 0))
             
         self.u_pac = User.objects.create_user(username="pac_test", password="123")
-        self.paciente = Paciente.objects.create(user=self.u_pac, dni="11")
+        self.paciente = Paciente.objects.create(user=self.u_pac, dni="11", telefono="600111222")
         
         self.dia_fijado = date.today() + timedelta(days=5)
         self.cita = Cita.objects.create(

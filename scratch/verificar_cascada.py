@@ -56,16 +56,16 @@ def run_test():
     
     # Paciente A (Alta Urgencia -> Debería ser el primero en el ranking)
     ua = User.objects.create_user(username="test_paciente_a", first_name="Paciente", last_name="A")
-    pa = Paciente.objects.create(user=ua, telefono="600000001", preferencia_turno='M')
+    pa = Paciente.objects.create(user=ua, telefono="600000001", preferencia_turno='M', dni="11111111A")
     
     # Paciente B (Media Urgencia -> Debería ser el segundo en el ranking)
     ub = User.objects.create_user(username="test_paciente_b", first_name="Paciente", last_name="B")
-    pb = Paciente.objects.create(user=ub, telefono="600000002", preferencia_turno='M')
+    pb = Paciente.objects.create(user=ub, telefono="600000002", preferencia_turno='M', dni="22222222B")
     
     # 3. Preparación del escenario de citas
     # Cita original que ocupa el hueco de mañana (la que cancelaremos)
     u_orig = User.objects.create_user(username="test_paciente_orig")
-    p_orig = Paciente.objects.create(user=u_orig, telefono="000")
+    p_orig = Paciente.objects.create(user=u_orig, telefono="000", dni="33333333C")
     cita_a_cancelar = Cita.objects.create(
         paciente=p_orig, medico=medico, especialidad=esp, centro=centro,
         fecha=manana, hora_inicio="10:00", estado=EstadoCita.CONFIRMADA
@@ -99,7 +99,7 @@ def run_test():
     else:
         print(f"❌ ERROR: El motor no asignó correctamente. Ofrecido a: {propuesta1.paciente if propuesta1 else 'Nadie'}")
         return
-
+26: 
     # 5. EJECUCIÓN: PASO 2 - RECHAZO (CASCADA)
     print("\n[ACCION 2] El Paciente A RECHAZA la propuesta. Simulando lógica de Cascada...")
     
@@ -123,10 +123,10 @@ def run_test():
         print(f"❌ ERROR EN CASCADA: No se generó la segunda propuesta para B.")
         if propuesta2:
             print(f"   Se le ofreció a: {propuesta2.paciente}")
-
+27: 
     print("\n" + "="*50)
     print("🏁 PRUEBA FINALIZADA CON ÉXITO")
     print("="*50)
-
+28: 
 if __name__ == "__main__":
     run_test()

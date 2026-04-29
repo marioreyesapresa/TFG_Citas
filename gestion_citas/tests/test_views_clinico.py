@@ -10,7 +10,7 @@ class ClinicoViewsTests(TestCase):
         self.esp = Especialidad.objects.create(nombre="TestEsp")
         self.centro = Centro.objects.create(nombre="Centro Sur")
         self.u_med = User.objects.create_user(username="dr_test", password="password123")
-        self.medico = Medico.objects.create(user=self.u_med, especialidad=self.esp, centro=self.centro)
+        self.medico = Medico.objects.create(user=self.u_med, especialidad=self.esp, centro=self.centro, numero_colegiado="COL-001")
         
         for i in range(7):
             from ..models import HorarioMedico
@@ -20,7 +20,7 @@ class ClinicoViewsTests(TestCase):
             )
         
         self.u_pac = User.objects.create_user(username="pac_test", password="password123")
-        self.paciente = Paciente.objects.create(user=self.u_pac, dni="12345678Z", fecha_nacimiento=date(1990, 1, 1))
+        self.paciente = Paciente.objects.create(user=self.u_pac, dni="12345678Z", fecha_nacimiento=date(1990, 1, 1), telefono="600111222")
 
         self.cita = Cita.objects.create(
             paciente=self.paciente, medico=self.medico, 

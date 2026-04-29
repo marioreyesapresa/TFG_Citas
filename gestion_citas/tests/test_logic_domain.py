@@ -9,7 +9,7 @@ class LogicBuscarHuecosTests(TestCase):
         self.esp = Especialidad.objects.create(nombre="Cardiologia")
         self.centro = Centro.objects.create(nombre="Centro Sur")
         self.u_med = User.objects.create_user(username="m1")
-        self.medico = Medico.objects.create(user=self.u_med, especialidad=self.esp, centro=self.centro)
+        self.medico = Medico.objects.create(user=self.u_med, especialidad=self.esp, centro=self.centro, numero_colegiado="COL-001")
         
         # Horario: Lunes a viernes de 09:00 a 11:00
         for i in range(5):
@@ -19,7 +19,7 @@ class LogicBuscarHuecosTests(TestCase):
             )
             
         self.u_pac = User.objects.create_user(username="p1")
-        self.paciente = Paciente.objects.create(user=self.u_pac, dni="12345678Z", fecha_nacimiento=date(1990, 1, 1))
+        self.paciente = Paciente.objects.create(user=self.u_pac, dni="12345678Z", fecha_nacimiento=date(1990, 1, 1), telefono="600111222")
 
     def test_fechas_invalidas(self):
         """Si la fecha de inicio es mayor, retorna vacío."""
