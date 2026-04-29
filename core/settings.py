@@ -30,6 +30,7 @@ CSRF_TRUSTED_ORIGINS = [
 
 # Configuración técnica para proxies en PythonAnywhere (Evita errores 403 CSRF)
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+CSRF_FAILURE_VIEW = 'gestion_citas.views.vistas_error.mi_error_csrf'
 
 # Application definition
 INSTALLED_APPS = [

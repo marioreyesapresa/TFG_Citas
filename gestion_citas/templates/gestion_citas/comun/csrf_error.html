@@ -1,0 +1,89 @@
+{% extends 'gestion_citas/comun/base.html' %}
+{% load static %}
+
+{% block title %}Conflicto de Sesión - Hospital TFG{% endblock %}
+
+{% block extra_head %}
+<style>
+    body {
+        background: linear-gradient(135deg, #fef2f2 0%, #fff1f2 100%);
+        height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 0 !important;
+    }
+    .error-card {
+        background: white;
+        padding: 60px 50px;
+        border-radius: var(--radius-lg);
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.1);
+        width: 100%;
+        max-width: 500px;
+        text-align: center;
+        box-sizing: border-box;
+    }
+    .error-icon { 
+        font-size: 4rem; 
+        color: #ef4444; 
+        margin-bottom: 25px; 
+    }
+    .error-title {
+        font-size: 1.8rem;
+        font-weight: 800;
+        color: #1e293b;
+        margin-bottom: 20px;
+    }
+    .error-text {
+        color: #64748b;
+        font-size: 1.1rem;
+        line-height: 1.6;
+        margin-bottom: 35px;
+    }
+    .instruction-box {
+        background: #fff1f2;
+        border: 1px solid #fecaca;
+        padding: 20px;
+        border-radius: var(--radius-md);
+        text-align: left;
+        margin-bottom: 30px;
+    }
+    .instruction-box h4 {
+        color: #991b1b;
+        margin-bottom: 10px;
+        font-size: 0.95rem;
+    }
+    .instruction-box ul {
+        margin-left: 20px;
+        color: #b91c1c;
+        font-size: 0.9rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+    <div class="error-card">
+        <div class="error-icon"><i class="fas fa-user-lock"></i></div>
+        <h2 class="error-title">Conflicto de Sesión</h2>
+        <p class="error-text">
+            Se ha detectado un problema de seguridad debido al uso de <strong>múltiples usuarios</strong> en el mismo navegador.
+        </p>
+
+        <div class="instruction-box">
+            <h4><i class="fas fa-lightbulb"></i> ¿Cómo solucionarlo?</h4>
+            <ul>
+                <li>Cierra sesión en las demás pestañas abiertas.</li>
+                <li>Usa una ventana de incógnito para el segundo perfil.</li>
+                <li>Limpia las cookies del navegador.</li>
+            </ul>
+        </div>
+
+        <a href="{% url 'logout' %}" class="premium-btn" style="width: 100%; background: #ef4444; display: block; text-decoration: none;">
+            Forzar cierre de sesión
+        </a>
+        
+        <a href="{% url 'index' %}" style="display: inline-block; margin-top: 30px; color: #94a3b8; text-decoration: none; font-size: 0.85rem; font-weight: 600;">
+            <i class="fas fa-home"></i> Ir a Inicio
+        </a>
+    </div>
+{% endblock %}
