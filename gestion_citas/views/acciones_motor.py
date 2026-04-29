@@ -5,18 +5,25 @@ from django.views.decorators.http import require_POST
 from django.db import transaction
 from ..models import Cita, EstadoCita, PropuestaReasignacion, EstadoPropuesta, Notificacion
 
+from django.contrib.auth import logout
+
 @login_required
 @transaction.atomic
 def aceptar_propuesta(request, propuesta_id):
     """
     Gestiona la aceptación de una propuesta de adelanto de cita.
-    Actualiza la cita del paciente y libera el hueco anterior para su reasignación.
     """
-    if not hasattr(request.user, 'paciente'):
-        return redirect('dashboard')
-        
-    propuesta = get_object_or_404(PropuestaReasignacion, id=propuesta_id, cita_original__paciente=request.user.paciente)
+    # Buscamos la propuesta sin filtrar por usuario primero para detectar sesiones cruzadas
+    propuesta = PropuestaReasignacion.objects.filter(id=propuesta_id).first()
     
+    if not propuesta:
+        return redirect('dashboard')
+
+    # SEGURIDAD INTELIGENTE: Si el usuario logueado no es el dueño de la propuesta
+    if propuesta.paciente.user != request.user:
+        logout(request)
+        return redirect(f'/login/?next={request.path}')
+
     if propuesta.estado == EstadoPropuesta.PENDIENTE and propuesta.fecha_limite > timezone.now():
         cita = propuesta.cita_original
         
@@ -54,14 +61,18 @@ def aceptar_propuesta(request, propuesta_id):
 @login_required
 def rechazar_propuesta(request, propuesta_id):
     """
-    Gestiona el rechazo de una propuesta de adelanto. 
-    Mantiene la cita original y libera el hueco para el siguiente candidato.
+    Gestiona el rechazo de una propuesta de adelanto.
     """
-    if not hasattr(request.user, 'paciente'):
-        return redirect('dashboard')
-        
-    propuesta = get_object_or_404(PropuestaReasignacion, id=propuesta_id, cita_original__paciente=request.user.paciente)
+    propuesta = PropuestaReasignacion.objects.filter(id=propuesta_id).first()
     
+    if not propuesta:
+        return redirect('dashboard')
+
+    # SEGURIDAD INTELIGENTE
+    if propuesta.paciente.user != request.user:
+        logout(request)
+        return redirect(f'/login/?next={request.path}')
+
     if propuesta.estado == EstadoPropuesta.PENDIENTE:
         propuesta.estado = EstadoPropuesta.RECHAZADA
         propuesta.save()
