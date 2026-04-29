@@ -17,12 +17,10 @@ SECRET_KEY = 'django-insecure--0o*o#_p!l-d&a@ovw#x4352@fe!4gh%o^=$d!%j8=wptkj0fe
 DEBUG = True
 
 ALLOWED_HOSTS = [
-    host.strip()
-    for host in os.environ.get(
-        'DJANGO_ALLOWED_HOSTS',
-        'tfg-citas-791788503447.europe-west1.run.app,localhost,127.0.0.1,192.168.1.2'
-    ).split(',')
-    if host.strip()
+    'tfgmarreyapr.pythonanywhere.com',
+    'localhost',
+    '127.0.0.1',
+    '*'
 ]
 
 # Esta es la línea clave para quitar el error "Prohibido (403)"
