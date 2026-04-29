@@ -16,7 +16,12 @@ class ReasignacionLogicaTests(TestCase):
         self.esp = Especialidad.objects.create(nombre="TestEsp")
         self.centro = Centro.objects.create(nombre="TestCentro")
         self.u_med = User.objects.create_user(username="test_med")
-        self.medico = Medico.objects.create(user=self.u_med, especialidad=self.esp, centro=self.centro)
+        self.medico = Medico.objects.create(
+            user=self.u_med, 
+            especialidad=self.esp, 
+            centro=self.centro,
+            numero_colegiado="COL-001"
+        )
         
         # Horarios
         for i in range(7):
@@ -31,8 +36,18 @@ class ReasignacionLogicaTests(TestCase):
         )
         
         # Pacientes
-        self.pa = Paciente.objects.create(user=User.objects.create_user(username="pa", email="pa@test.com"), preferencia_turno='M')
-        self.pb = Paciente.objects.create(user=User.objects.create_user(username="pb", email="pb@test.com"), preferencia_turno='T')
+        self.pa = Paciente.objects.create(
+            user=User.objects.create_user(username="pa", email="pa@test.com"), 
+            preferencia_turno='M',
+            telefono="600000001",
+            dni="11111111A"
+        )
+        self.pb = Paciente.objects.create(
+            user=User.objects.create_user(username="pb", email="pb@test.com"), 
+            preferencia_turno='T',
+            telefono="600000002",
+            dni="22222222B"
+        )
 
     def test_mask_email_edge_cases(self):
         """Cubre líneas 15, 18-19 de _mask_email."""

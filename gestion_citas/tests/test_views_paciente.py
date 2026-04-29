@@ -11,7 +11,7 @@ class PacientePortalTests(TestCase):
         self.esp = Especialidad.objects.create(nombre="Test")
         self.centro = Centro.objects.create(nombre="Centro")
         self.u_med = User.objects.create_user(username="dr_p", first_name="Dr", last_name="P")
-        self.medico = Medico.objects.create(user=self.u_med, especialidad=self.esp, centro=self.centro)
+        self.medico = Medico.objects.create(user=self.u_med, especialidad=self.esp, centro=self.centro, numero_colegiado="123")
         
         # Horarios para evitar errores de validación de días laborables
         for i in range(7):
@@ -24,8 +24,8 @@ class PacientePortalTests(TestCase):
         self.paciente = Paciente.objects.create(
             user=self.user, 
             dni="12345678Z", 
-            telefono="600111222", 
-            fecha_nacimiento=date(1990, 1, 1)
+            fecha_nacimiento=date(1990, 1, 1),
+            telefono="600111222"
         )
         self.client.login(username="test_user", password="password123")
 
