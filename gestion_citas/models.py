@@ -26,7 +26,7 @@ class NivelUrgencia(models.IntegerChoices):
     ALTA = 3, 'Alta'
 
 # ==========================================
-# 2. ENTIDADES INDEPENDIENTES
+# 2. ENTIDADES PRINCIPALES
 # ==========================================
 class Centro(models.Model):
     nombre = models.CharField(max_length=100)
@@ -35,27 +35,19 @@ class Centro(models.Model):
         return self.nombre
     
 class Especialidad(models.Model):
-    #Datos que tendra la clase
     nombre = models.CharField(max_length=100)
 
-    # Esto es una función especial de Python para que, 
-    # al ver el objeto, nos diga su nombre real(string) y no un código raro(object 1)
     def __str__(self):
         return self.nombre
     
-    #Para indicar como se escribe el plural, por defecto (si no ponemos esta funcion) añade solo una s
     class Meta:
         verbose_name_plural = "Especialidades"
 
 # ==========================================
 # 3. PERFILES DE USUARIO 
 # ==========================================
-
 class Paciente(models.Model):
-    # Relación 1 a 1 con el usuario de Django (Login)
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='paciente')
-    
-    # Datos específicos del Paciente 
     dni = models.CharField(max_length=9, unique=True, null=True, blank=True)
     telefono = models.CharField(max_length=15)
     fecha_nacimiento = models.DateField(null=True, blank=True)
@@ -70,12 +62,8 @@ class Paciente(models.Model):
 
 
 class Medico(models.Model):
-    # Relación 1 a 1 con el usuario de Django
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='medico')
-    
-    # Datos específicos del Médico (UML)
     numero_colegiado = models.CharField(max_length=20)
-     #con foreignkey hacemos q ese campo sea una elección de la lista de Especialidades que ya exist
     especialidad = models.ForeignKey(Especialidad, on_delete=models.CASCADE)
     centro = models.ForeignKey(Centro, on_delete=models.CASCADE)
     
@@ -88,7 +76,6 @@ class Administrativo(models.Model):
     
     def __str__(self):
         return f"Admin: {self.user.first_name} {self.user.last_name} ({self.centro})"
-    
 
 # ==========================================
 # 4. DISPONIBILIDAD 
@@ -110,33 +97,27 @@ class HorarioMedico(models.Model):
     hora_fin = models.TimeField()
 
     class Meta:
-        # Evita duplicados: Un médico no puede tener dos horarios el mismo día
         unique_together = ('medico', 'dia_semana', 'hora_inicio') 
 
     def clean(self):
-        # 1. PROTECCIÓN (NUEVO): Si los campos están vacíos, salimos de la función.
-        # Esto evita el error "NoneType has no attribute minute" en el Admin.
         if not self.hora_inicio or not self.hora_fin:
             return
 
-        # 2. VALIDACIÓN DE MINUTOS (Solo si las horas existen)
         if self.hora_inicio.minute not in [0, 30]:
             raise ValidationError({'hora_inicio': "La hora de inicio debe ser exacta (ej: 09:00 o 09:30)."})
         if self.hora_fin.minute not in [0, 30]:
             raise ValidationError({'hora_fin': "La hora de fin debe ser exacta (ej: 14:00 o 14:30)."})
         
-        # 3. VALIDACIÓN DE COHERENCIA
         if self.hora_inicio >= self.hora_fin:
             raise ValidationError("La hora de inicio debe ser anterior a la de fin.")
 
     def __str__(self):
-        # También protegemos el string por si acaso se llama sin hora
         inicio = self.hora_inicio.strftime('%H:%M') if self.hora_inicio else "??"
         fin = self.hora_fin.strftime('%H:%M') if self.hora_fin else "??"
         return f"{self.medico} - {self.get_dia_semana_display()} ({inicio}-{fin})"
-    
+
 # ==========================================
-# 5. CITA 
+# 5. GESTIÓN DE CITAS 
 # ==========================================
 class EstadoCita(models.TextChoices):
     PENDIENTE = 'P', 'Pendiente'
@@ -163,7 +144,7 @@ class Cita(models.Model):
     )
     nivel_cascada = models.IntegerField(
         default=0,
-        help_text="Control de profundidad de la reacción en cadena (máx 5)"
+        help_text="Control de profundidad de la reasignación automática."
     )
 
     class Meta:
@@ -173,62 +154,44 @@ class Cita(models.Model):
         return f"Cita: {self.paciente} con {self.medico} el {self.fecha}"
     
     def clean(self):
-        # LOGS DE EMERGENCIA PARA CONSOLA DE SERVIDOR
-        print(f"\n--- VALIDANDO CITA ---")
-        print(f"Especialidad: {self.especialidad}")
-        print(f"Centro: {self.centro}")
-        print(f"Medico: {self.medico} (Centro: {self.medico.centro if self.medico else 'N/A'}, Esp: {self.medico.especialidad if self.medico else 'N/A'})")
-        
-        # 1. Validar que la cita no sea en el pasado 
         if not self.id and self.fecha < datetime.date.today() and self.estado != EstadoCita.CANCELADA:
             raise ValidationError("No se pueden crear citas en el pasado.")
 
-        # 1.1 Validar Coherencia de Especialidad (NUEVO)
         if self.medico and self.especialidad:
             if self.medico.especialidad != self.especialidad:
                 raise ValidationError({
-                    'medico': f"⚠️ ERROR DE COHERENCIA: El Dr/a. {self.medico.user.last_name} es de la especialidad {self.medico.especialidad}, NO de {self.especialidad}. Por favor, selecciona un médico correcto."
+                    'medico': f"Error de coherencia: El médico seleccionado no pertenece a la especialidad {self.especialidad}."
                 })
         
-        # 1.2 Validar Coherencia de Centro (NUEVO)
         if self.medico and self.centro:
             if self.medico.centro != self.centro:
                 raise ValidationError({
-                    'medico': f"⚠️ ERROR DE UBICACIÓN: El Dr/a. {self.medico.user.last_name} trabaja en {self.medico.centro}, NO en {self.centro}."
+                    'medico': f"Error de ubicación: El médico seleccionado no trabaja en el centro {self.centro}."
                 })
       
         if not self.fecha or not self.hora_inicio or not self.medico:
             return
 
-        # 2. Validar Disponibilidad del Médico y TURNOS
         dia_semana_cita = self.fecha.weekday() 
-        
         horario = HorarioMedico.objects.filter(
             medico=self.medico,              
             dia_semana=dia_semana_cita,      
         ).first()
 
-        # Validación A: ¿Trabaja ese día?
         if not horario:
-            raise ValidationError(f"El Dr/a. {self.medico.user.last_name} no trabaja los {self.fecha.strftime('%A')}.")
+            raise ValidationError(f"El médico seleccionado no trabaja el día {self.fecha.strftime('%d/%m/%Y')}.")
         
-        # Validación B: ¿La hora está dentro del rango?
         if not (horario.hora_inicio <= self.hora_inicio < horario.hora_fin):
-             raise ValidationError(f"La hora debe estar entre {horario.hora_inicio.strftime('%H:%M')} y {horario.hora_fin.strftime('%H:%M')}.")
+             raise ValidationError(f"La hora debe estar dentro de la jornada laboral ({horario.hora_inicio.strftime('%H:%M')} - {horario.hora_fin.strftime('%H:%M')}).")
 
-        # Validación C: ¿Encaja en los slots de 30 min? (Lógica Matemática)
         minutos_inicio_medico = horario.hora_inicio.hour * 60 + horario.hora_inicio.minute
         minutos_cita = self.hora_inicio.hour * 60 + self.hora_inicio.minute
-        
         diferencia = minutos_cita - minutos_inicio_medico
         
         if diferencia % DURACION_CITA != 0:
-            raise ValidationError(f"Las citas deben ser cada {DURACION_CITA} minutos exactos.")
+            raise ValidationError(f"Las citas deben respetar los intervalos de {DURACION_CITA} minutos.")
 
-        # 3. Validar Solapamientos (R14)
-        # Importante: Excluimos las citas canceladas del solapamiento, 
-        # porque un hueco cancelado es un hueco LIBRE.
-        
+        # Validación de solapamientos
         cita_medico_ocupada = Cita.objects.filter(
             medico=self.medico,
             fecha=self.fecha,
@@ -236,7 +199,7 @@ class Cita(models.Model):
         ).exclude(id=self.id).exclude(estado=EstadoCita.CANCELADA).exists()
 
         if cita_medico_ocupada:
-            raise ValidationError("El médico ya tiene una cita asignada a esa hora.")
+            raise ValidationError("El médico ya tiene una cita asignada en este horario.")
 
         cita_paciente_ocupada = Cita.objects.filter(
             paciente=self.paciente,
@@ -245,43 +208,36 @@ class Cita(models.Model):
         ).exclude(id=self.id).exclude(estado=EstadoCita.CANCELADA).exists()
 
         if cita_paciente_ocupada:
-            raise ValidationError("El paciente ya tiene una cita a esa hora.")
+            raise ValidationError("El paciente ya tiene una cita programada en este horario.")
     
     def save(self, *args, **kwargs):
-            # 1. Ejecutar validaciones 
-            self.full_clean()
-
-            # 2. Detectar si es una cancelación (o creación de hueco libre)
-            activar_motor = False
-            
-            if not self.pk and self.estado == EstadoCita.CANCELADA:
-                # Caso: Creación de un hueco libre directamente (Ej: Reacción en cadena)
+        self.full_clean()
+        activar_motor = False
+        
+        if not self.pk and self.estado == EstadoCita.CANCELADA:
+            activar_motor = True
+        elif self.pk: 
+            cita_anterior = Cita.objects.get(pk=self.pk)
+            if cita_anterior.estado != EstadoCita.CANCELADA and self.estado == EstadoCita.CANCELADA:
                 activar_motor = True
-            elif self.pk: 
-                cita_anterior = Cita.objects.get(pk=self.pk)
-                # Si NO estaba cancelada Y AHORA SÍ lo está...
-                if cita_anterior.estado != EstadoCita.CANCELADA and self.estado == EstadoCita.CANCELADA:
-                    activar_motor = True
 
-            # 3. Guardar el cambio en la base de datos
-            super().save(*args, **kwargs)
+        super().save(*args, **kwargs)
 
-            # 4. Si hay que activar el motor, lo hacemos DESPUÉS de guardar
-            if activar_motor:
-                from .algoritmo_reasignacion import iniciar_reasignacion 
-                iniciar_reasignacion(self)
+        if activar_motor:
+            from .algoritmo_reasignacion import iniciar_reasignacion 
+            iniciar_reasignacion(self)
 
 # ==========================================
-# 6. GESTIÓN VISUAL DE HORARIOS (PROXY)
+# 6. GESTIÓN ADMINISTRATIVA
 # ==========================================
 class GestionHorario(Medico):
     class Meta:
-        proxy = True # Esto le dice a Django que no cree una tabla nueva
+        proxy = True
         verbose_name = "Gestión de Horario"
         verbose_name_plural = "Gestión de Horarios"
 
 # ==========================================
-# 7. MOTOR DE REASIGNACIÓN (R8)
+# 7. MOTOR DE REASIGNACIÓN
 # ==========================================
 class EstadoPropuesta(models.TextChoices):
     PENDIENTE = 'PENDIENTE', 'Pendiente de respuesta'
@@ -290,16 +246,12 @@ class EstadoPropuesta(models.TextChoices):
     EXPIRADA = 'EXPIRADA', 'Tiempo límite agotado'
 
 class PropuestaReasignacion(models.Model):
-    # La cita que el paciente YA tiene (la que queremos mejorar)
     cita_original = models.ForeignKey(Cita, on_delete=models.CASCADE, related_name='propuestas')
-    
-    # El hueco libre que le ofrecemos (la Cita liberada/cancelada)
     hueco = models.ForeignKey(Cita, on_delete=models.CASCADE, related_name='es_propuesta_de', null=True, blank=True)
     paciente = models.ForeignKey(Paciente, on_delete=models.CASCADE, related_name='propuestas_recibidas', null=True, blank=True)
     
-    # Control de tiempos (R8 - TTL)
     fecha_creacion = models.DateTimeField(auto_now_add=True)
-    fecha_limite = models.DateTimeField(help_text="Hasta cuándo es válida esta oferta")
+    fecha_limite = models.DateTimeField(help_text="Fecha límite para la validez de la oferta.")
     
     estado = models.CharField(
         max_length=20, 
@@ -317,7 +269,6 @@ class PropuestaReasignacion(models.Model):
         ]
 
     def __str__(self):
-        # Protegemos el print por si el hueco es nulo al crearla en el panel admin temporalmente
         fecha = self.hueco.fecha if self.hueco else '??'
         hora = self.hueco.hora_inicio if self.hueco else '??'
         return f"Propuesta para {self.paciente}: {fecha} a las {hora}"
@@ -339,11 +290,11 @@ class ConfiguracionReasignacion(models.Model):
 
     class Meta:
         verbose_name = "Configuración de Reasignación"
-        verbose_name_plural = "Configuración de Reasignaciones"
+        verbose_name_plural = "Configuraciones de Reasignación"
 
     def clean(self):
         if not self.pk and ConfiguracionReasignacion.objects.exists():
-            raise ValidationError("Solo puede existir una configuración de reasignación activa.")
+            raise ValidationError("Solo puede existir una configuración activa.")
 
     def save(self, *args, **kwargs):
         self.full_clean()
@@ -359,26 +310,23 @@ class ConsultaMedica(models.Model):
     cita = models.OneToOneField(Cita, on_delete=models.CASCADE, related_name='consulta_medica')
     motivo_consulta = models.CharField(max_length=255)
     
-    # --- NUEVOS CAMPOS PROFESIONALES (Epic 4.4 - Iteración II) ---
-    antecedentes_alergias = models.TextField(blank=True, null=True, help_text="RAM, antecedentes familiares...")
-    descripcion_problema = models.TextField(blank=True, null=True, help_text="Descripción narrativa del episodio...")
-    exploracion_medica = models.TextField(blank=True, null=True, help_text="Constantes y exploración por aparatos...")
-    pruebas_solicitadas = models.TextField(blank=True, null=True, help_text="Rx, Analíticas...")
+    antecedentes_alergias = models.TextField(blank=True, null=True)
+    descripcion_problema = models.TextField(blank=True, null=True)
+    exploracion_medica = models.TextField(blank=True, null=True)
+    pruebas_solicitadas = models.TextField(blank=True, null=True)
     
-    diagnostico_principal = models.TextField(blank=True, null=True, help_text="Diagnóstico final o presuntivo")
-    tratamiento_pautas = models.TextField(blank=True, null=True, help_text="Medidas generales, derivaciones, reposo...")
+    diagnostico_principal = models.TextField(blank=True, null=True)
+    tratamiento_pautas = models.TextField(blank=True, null=True)
     
-    # Token de seguridad para validación pública (Epic 4.6)
-    token_verificacion = models.UUIDField(default=uuid.uuid4, editable=False, unique=True, null=False)
+    token_verificacion = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
     
-    observaciones = models.TextField(blank=True, null=True, help_text="Notas de control interno")
+    observaciones = models.TextField(blank=True, null=True)
     fecha_creacion = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return f"Consulta: {self.motivo_consulta} ({self.cita.paciente})"
 
     def save(self, *args, **kwargs):
-        # Garantía Extra de Integridad (Copilot Feedback)
         if not self.token_verificacion:
             self.token_verificacion = uuid.uuid4()
         super().save(*args, **kwargs)
@@ -394,7 +342,7 @@ class Receta(models.Model):
         return f"{self.medicamento} - {self.posologia}"
 
 # ==========================================
-# 9. SEÑALES DEL MOTOR (R8 - Automatización)
+# 9. GESTIÓN AUTOMATIZADA
 # ==========================================
 from django.db.models.signals import post_delete
 from django.dispatch import receiver
@@ -402,26 +350,18 @@ from django.dispatch import receiver
 @receiver(post_delete, sender=Cita)
 def procesar_borrado_cita(sender, instance, **kwargs):
     """
-    Si una cita se borra físicamente (Admin), el motor detecta el hueco liberado,
-    crea un registro de 'Hueco Libre' y busca candidatos.
+    Gestiona la liberación de huecos tras un borrado físico en el sistema.
     """
-    # Solo actuar para citas futuras que no estuvieran ya canceladas o atendidas
     if instance.fecha >= datetime.date.today() and instance.estado not in [EstadoCita.CANCELADA, EstadoCita.ATENDIDA]:
-        print(f"\n🗑️ [MOTOR] Aviso de borrado físico detectado para {instance.fecha} {instance.hora_inicio}")
-        
-        # Como la cita original se borró, creamos un "Hueco Fantasma" (sin paciente)
-        # para que el motor tenga un objeto real al que vincular la propuesta.
         try:
-            hueco_fantasma = Cita.objects.create(
-                paciente=instance.paciente, # Mantenemos al paciente original como referencia histórica del hueco
+            Cita.objects.create(
+                paciente=instance.paciente,
                 medico=instance.medico,
                 especialidad=instance.especialidad,
                 centro=instance.centro,
                 fecha=instance.fecha,
                 hora_inicio=instance.hora_inicio,
-                estado=EstadoCita.CANCELADA # Lo marcamos como cancelado/libre
+                estado=EstadoCita.CANCELADA
             )
-            print(f"✨ [MOTOR] Se ha generado un registro de 'Hueco Libre' para sustituir la eliminación.")
-            # Nota: El motor se activa ahora automáticamente en el .save() de hueco_fantasma
-        except Exception as e:
-            print(f"⚠️ [MOTOR] Error al procesar borrado: {e}")
+        except Exception:
+            pass

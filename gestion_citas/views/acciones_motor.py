@@ -8,37 +8,36 @@ from ..models import Cita, EstadoCita, PropuestaReasignacion, EstadoPropuesta, N
 @login_required
 @transaction.atomic
 def aceptar_propuesta(request, propuesta_id):
+    """
+    Gestiona la aceptación de una propuesta de adelanto de cita.
+    Actualiza la cita del paciente y libera el hueco anterior para su reasignación.
+    """
     if not hasattr(request.user, 'paciente'):
-        # Si es admin o médico, redirigimos al dashboard
         return redirect('dashboard')
         
     propuesta = get_object_or_404(PropuestaReasignacion, id=propuesta_id, cita_original__paciente=request.user.paciente)
+    
     if propuesta.estado == EstadoPropuesta.PENDIENTE and propuesta.fecha_limite > timezone.now():
         cita = propuesta.cita_original
         
-        # --- REACCIÓN EN CADENA: Detectar Hueco Abandonado ---
+        # Guardamos los datos de la cita actual que va a ser liberada
         fecha_vieja = cita.fecha
         hora_vieja = cita.hora_inicio
-        # El nivel de profundidad hereda del hueco que se ocupa + 1
         nuevo_nivel_cascada = propuesta.hueco.nivel_cascada + 1
         
-        # Movemos al paciente al nuevo hueco
+        # Actualizamos la cita del paciente con el nuevo hueco
         cita.fecha = propuesta.hueco.fecha
         cita.hora_inicio = propuesta.hueco.hora_inicio
-        # El paciente 'hereda' el nivel de cascada del hueco al que salta
         cita.nivel_cascada = propuesta.hueco.nivel_cascada 
         cita.save() 
         
-        # Marcamos propuesta como aceptada
         propuesta.estado = EstadoPropuesta.ACEPTADA
         propuesta.save()
 
-        # CONSUMO DEL HUECO: El registro 'CANCELADA' del hueco que acabamos de ocupar
-        # debe eliminarse para evitar duplicidades en el motor.
+        # El hueco que el paciente ha ocupado deja de estar disponible
         propuesta.hueco.delete()
 
-        # LIBERACIÓN DEL HUECO VIEJO: Generamos un 'Hueco Fantasma' en la posición abandonada
-        # para que el motor busque al siguiente candidato (Siguiente nivel de cascada)
+        # Creamos un nuevo registro de hueco libre en la posición que el paciente acaba de dejar
         Cita.objects.create(
             paciente=cita.paciente,
             medico=cita.medico,
@@ -46,25 +45,28 @@ def aceptar_propuesta(request, propuesta_id):
             centro=cita.centro,
             fecha=fecha_vieja,
             hora_inicio=hora_vieja,
-            estado=EstadoCita.CANCELADA, # Marcado como libre
-            nivel_cascada=nuevo_nivel_cascada # Incrementamos profundidad basado en la cadena
+            estado=EstadoCita.CANCELADA,
+            nivel_cascada=nuevo_nivel_cascada
         )
+        
     return redirect('perfil_paciente')
 
 @login_required
 def rechazar_propuesta(request, propuesta_id):
+    """
+    Gestiona el rechazo de una propuesta de adelanto. 
+    Mantiene la cita original y libera el hueco para el siguiente candidato.
+    """
     if not hasattr(request.user, 'paciente'):
         return redirect('dashboard')
         
     propuesta = get_object_or_404(PropuestaReasignacion, id=propuesta_id, cita_original__paciente=request.user.paciente)
+    
     if propuesta.estado == EstadoPropuesta.PENDIENTE:
-
         propuesta.estado = EstadoPropuesta.RECHAZADA
         propuesta.save()
         
-        # EL NÚCLEO DEL TFG: REEVALUACIÓN EN CASCADA
-        # Al rechazar, el hueco queda libre. Relanzamos el motor para que elija al siguiente candidato idóneo
-        # respetando los pesos globales sin caer en Infinite Loops (gracias a Regla E).
+        # Al quedar el hueco libre de nuevo, se reinicia el motor de reasignación
         from ..algoritmo_reasignacion import iniciar_reasignacion
         iniciar_reasignacion(propuesta.hueco)
 
@@ -73,6 +75,9 @@ def rechazar_propuesta(request, propuesta_id):
 @login_required
 @require_POST
 def eliminar_notificacion(request, notificacion_id):
+    """
+    Elimina una notificación del panel del paciente.
+    """
     notificacion = get_object_or_404(Notificacion, id=notificacion_id, paciente=request.user.paciente)
     notificacion.delete()
     return redirect('perfil_paciente')
