@@ -6,7 +6,6 @@ from django.db import transaction
 from ..models import Cita, EstadoCita, PropuestaReasignacion, EstadoPropuesta, Notificacion
 
 @login_required
-@require_POST
 @transaction.atomic
 def aceptar_propuesta(request, propuesta_id):
     if not hasattr(request.user, 'paciente'):
@@ -53,7 +52,6 @@ def aceptar_propuesta(request, propuesta_id):
     return redirect('perfil_paciente')
 
 @login_required
-@require_POST
 def rechazar_propuesta(request, propuesta_id):
     if not hasattr(request.user, 'paciente'):
         return redirect('dashboard')
