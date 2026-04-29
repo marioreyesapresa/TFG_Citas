@@ -78,9 +78,12 @@
             </ul>
         </div>
 
-        <a href="{% url 'logout' %}" class="premium-btn" style="width: 100%; background: #ef4444; display: block; text-decoration: none;">
-            Forzar cierre de sesión
-        </a>
+        <form action="{% url 'logout' %}" method="post">
+            {% csrf_token %}
+            <button type="submit" class="premium-btn" style="width: 100%; background: #ef4444; border: none; cursor: pointer;">
+                Forzar cierre de sesión
+            </button>
+        </form>
         
         <a href="{% url 'index' %}" style="display: inline-block; margin-top: 30px; color: #94a3b8; text-decoration: none; font-size: 0.85rem; font-weight: 600;">
             <i class="fas fa-home"></i> Ir a Inicio
