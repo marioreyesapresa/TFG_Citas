@@ -55,7 +55,8 @@ def perfil_paciente(request):
         form = PacienteForm(instance=paciente)
     
     citas = Cita.objects.filter(
-        paciente=paciente
+        paciente=paciente,
+        fecha__gte=timezone.localdate()
     ).select_related('medico__user', 'centro', 'consulta_medica').order_by('fecha', 'hora_inicio')
 
     ahora = timezone.now()
