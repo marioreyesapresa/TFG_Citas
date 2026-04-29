@@ -28,6 +28,9 @@ CSRF_TRUSTED_ORIGINS = [
     'https://tfg-citas-791788503447.europe-west1.run.app'
 ]
 
+# Configuración técnica para proxies en PythonAnywhere (Evita errores 403 CSRF)
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
 # Application definition
 INSTALLED_APPS = [
     'jazzmin',
