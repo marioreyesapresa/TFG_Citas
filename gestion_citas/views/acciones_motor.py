@@ -11,6 +11,7 @@ from django.contrib.auth import logout
 @login_required
 @transaction.atomic
 def aceptar_propuesta(request, token):
+    """
     Gestiona la aceptación de una propuesta de adelanto de cita mediante token UUID.
     """
     if not hasattr(request.user, 'paciente'):
