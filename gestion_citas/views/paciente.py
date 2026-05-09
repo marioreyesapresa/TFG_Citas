@@ -4,6 +4,7 @@ from django.utils import timezone
 from django.contrib import messages
 from django.core.exceptions import ValidationError
 from django.http import JsonResponse
+from django.db.models import Case, When, Value, IntegerField
 from datetime import datetime, timedelta
 import logging
 
@@ -54,9 +55,16 @@ def perfil_paciente(request):
     else:
         form = PacienteForm(instance=paciente)
     
-    citas = Cita.objects.filter(
-        paciente=paciente
-    ).select_related('medico__user', 'centro', 'consulta_medica').order_by('fecha', 'hora_inicio')
+    citas = Cita.objects.filter(paciente=paciente).annotate(
+        prioridad=Case(
+            When(estado=EstadoCita.CONFIRMADA, then=Value(1)),
+            When(estado=EstadoCita.PENDIENTE, then=Value(2)),
+            When(estado=EstadoCita.EN_ESPERA, then=Value(3)),
+            When(estado=EstadoCita.ATENDIDA, then=Value(4)),
+            When(estado=EstadoCita.CANCELADA, then=Value(5)),
+            output_field=IntegerField(),
+        )
+    ).select_related('medico__user', 'centro', 'consulta_medica').order_by('prioridad', 'fecha', 'hora_inicio')
 
     ahora = timezone.now()
     PropuestaReasignacion.objects.filter(
