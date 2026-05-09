@@ -238,7 +238,13 @@
         }
 
         const selects = ['id_especialidad', 'id_centro', 'id_medico', 'id_hora', 'id_urgencia'];
-        selects.forEach(id => initTomSelect(id));
+        selects.forEach(id => {
+            let settings = {};
+            if (id === 'id_urgencia') {
+                settings = { sortField: null };
+            }
+            initTomSelect(id, settings);
+        });
 
         const calendarioInput = document.getElementById('calendario');
         const infoDiv = document.getElementById('info-horario');

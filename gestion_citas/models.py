@@ -21,9 +21,9 @@ class Turno(models.TextChoices):
     TARDE = 'T', 'Tarde'
 
 class NivelUrgencia(models.IntegerChoices):
-    BAJA = 1, 'Baja'
-    MEDIA = 2, 'Media'
     ALTA = 3, 'Alta'
+    MEDIA = 2, 'Media'
+    BAJA = 1, 'Baja'
 
 # ==========================================
 # 2. ENTIDADES INDEPENDIENTES
@@ -305,6 +305,13 @@ class PropuestaReasignacion(models.Model):
         max_length=20, 
         choices=EstadoPropuesta.choices, 
         default=EstadoPropuesta.PENDIENTE
+    )
+    
+    token_respuesta = models.UUIDField(
+        default=uuid.uuid4, 
+        editable=False, 
+        unique=True,
+        help_text="Token único para la validación de la arquitectura One-Click."
     )
 
     class Meta:
