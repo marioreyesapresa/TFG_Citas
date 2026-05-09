@@ -36,6 +36,7 @@ def iniciar_reasignacion(cita_cancelada):
     logger.info(f"Iniciando motor de reasignación para hueco: {cita_cancelada.fecha} {cita_cancelada.hora_inicio}")
 
     # Control de profundidad de cascada (Circuit Breaker)
+    logger.info(f"Procesando cascada nivel {cita_cancelada.nivel_cascada} para el hueco {cita_cancelada.id}")
     if cita_cancelada.nivel_cascada >= 5:
         logger.warning(f"Límite de cascada alcanzado para hueco {cita_cancelada.id}. Abortando reevaluación.")
         return
@@ -88,19 +89,26 @@ def iniciar_reasignacion(cita_cancelada):
         dias_diferencia = (candidato.fecha - fecha_hueco).days
         puntuacion += (dias_diferencia * peso_antiguedad) 
 
-        # Restricción: No asignar si ya tiene otra cita el mismo día
-        tiene_cita_ese_dia = Cita.objects.filter(
-            paciente=paciente, 
-            fecha=fecha_hueco
+        # Restricción: No asignar si el paciente ya tiene ocupada ESA HORA exacta (evita solapamientos)
+        tiene_cita_solapada = Cita.objects.filter(
+            paciente=paciente,
+            fecha=fecha_hueco,
+            hora_inicio=hora_hueco
         ).exclude(estado=EstadoCita.CANCELADA).exists()
 
-        if tiene_cita_ese_dia:
+        if tiene_cita_solapada:
             continue
 
-        # Restricción: No repetir ofertas para el mismo hueco
+        # Restricción: No asignar si ya tiene otra cita el mismo día (opcional, según política del centro)
+        # Por ahora lo mantenemos flexible: permitimos dos citas el mismo día si son a horas distintas,
+        # pero NUNCA a la misma hora exacta.
+
+        # Restricción: No repetir ofertas para el mismo sitio exacto (Médico + Fecha + Hora)
         ya_se_le_ofrecio_este_hueco = PropuestaReasignacion.objects.filter(
             paciente=paciente,
-            hueco=cita_cancelada
+            hueco__medico=medico,
+            hueco__fecha=fecha_hueco,
+            hueco__hora_inicio=hora_hueco
         ).exists()
 
         if ya_se_le_ofrecio_este_hueco:
@@ -129,12 +137,15 @@ def iniciar_reasignacion(cita_cancelada):
             fecha_limite=timezone.now() + timedelta(hours=HORAS_TTL)
         )
         
-        # Creación de notificación web
-        mensaje_notificacion = (
-            f"Se ha liberado un hueco con el Dr/a. {medico.user.last_name} "
-            f"para el día {fecha_hueco.strftime('%d/%m/%Y')} a las {hora_hueco.strftime('%H:%M')}. "
-            "¿Desea adelantar su cita?"
-        )
+        # BLOQUEO DE HUECO (Evita que otros pacientes se "cuelen" mientras el candidato decide)
+        cita_cancelada.estado = EstadoCita.EN_ESPERA
+        cita_cancelada.save()
+        
+        # Opcional: Podrías querer marcar la cita_original como PENDIENTE de cambio
+        # Pero según tu petición, simplemente las nuevas propuestas son las que gestionan el flujo.
+
+        # CREAR NOTIFICACIÓN PERSISTENTE (Novedad V25)
+        mensaje_notificacion = f"¡Buenas noticias! Se ha liberado un hueco con el Dr/a. {medico.user.last_name} para el día {fecha_hueco.strftime('%d/%m/%Y')} a las {hora_hueco.strftime('%H:%M')}. ¿Quieres adelantar tu cita?"
 
         Notificacion.objects.create(
             paciente=mejor_candidato.paciente,

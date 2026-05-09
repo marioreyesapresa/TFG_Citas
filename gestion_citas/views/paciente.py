@@ -4,6 +4,8 @@ from django.utils import timezone
 from django.contrib import messages
 from django.core.exceptions import ValidationError
 from django.http import JsonResponse
+from django.db import models
+from django.db.models import Case, When, Value, IntegerField, CharField
 from datetime import datetime, timedelta
 import logging
 
@@ -54,15 +56,38 @@ def perfil_paciente(request):
     else:
         form = PacienteForm(instance=paciente)
     
-    citas = Cita.objects.filter(
-        paciente=paciente
-    ).select_related('medico__user', 'centro', 'consulta_medica').order_by('fecha', 'hora_inicio')
+    # UX: El paciente debe ver las citas "En espera" como "Canceladas" (R8)
+    citas = Cita.objects.filter(paciente=paciente).annotate(
+        estado_visual=Case(
+            When(estado=EstadoCita.EN_ESPERA, then=Value(EstadoCita.CANCELADA)),
+            default='estado',
+            output_field=CharField(),
+        ),
+        prioridad=Case(
+            When(estado=EstadoCita.CONFIRMADA, then=Value(1)),
+            When(estado=EstadoCita.PENDIENTE, then=Value(2)),
+            When(estado=EstadoCita.ATENDIDA, then=Value(3)),
+            When(estado__in=[EstadoCita.CANCELADA, EstadoCita.EN_ESPERA], then=Value(4)),
+            output_field=IntegerField(),
+        )
+    ).select_related('medico__user', 'centro', 'consulta_medica').order_by('prioridad', 'fecha', 'hora_inicio')
 
     ahora = timezone.now()
-    PropuestaReasignacion.objects.filter(
+    propuestas_expiradas = PropuestaReasignacion.objects.filter(
         estado=EstadoPropuesta.PENDIENTE,
         fecha_limite__lt=ahora
-    ).update(estado=EstadoPropuesta.EXPIRADA)
+    )
+    
+    if propuestas_expiradas.exists():
+        from ..algoritmo_reasignacion import iniciar_reasignacion
+        for prop in propuestas_expiradas:
+            prop.estado = EstadoPropuesta.EXPIRADA
+            prop.save()
+            # Liberamos el hueco para que el motor busque al siguiente candidato
+            if prop.hueco:
+                prop.hueco.estado = EstadoCita.CANCELADA
+                prop.hueco.save()
+                iniciar_reasignacion(prop.hueco)
 
     notificaciones_no_leidas = Notificacion.objects.filter(paciente=paciente, leida=False).order_by('-fecha_creacion')
     notificaciones_no_leidas.update(leida=True)
@@ -233,7 +258,11 @@ def cargar_horas_libres(request):
     while actual < fin:
         horas_posibles.append(actual.time())
         actual += timedelta(minutes=30)
-    citas_ocupadas = Cita.objects.filter(medico=medico, fecha=fecha_obj, estado__in=['P', 'C']).values_list('hora_inicio', flat=True)
+    citas_ocupadas = Cita.objects.filter(
+        medico=medico, 
+        fecha=fecha_obj, 
+        estado__in=[EstadoCita.PENDIENTE, EstadoCita.CONFIRMADA, EstadoCita.EN_ESPERA]
+    ).values_list('hora_inicio', flat=True)
     citas_ocupadas_limpias = [h.replace(second=0, microsecond=0) for h in citas_ocupadas]
     horas_libres = [h.strftime('%H:%M') for h in horas_posibles if h not in citas_ocupadas_limpias]
     return JsonResponse({'horas': horas_libres})

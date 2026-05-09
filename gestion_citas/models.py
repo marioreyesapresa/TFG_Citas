@@ -21,9 +21,9 @@ class Turno(models.TextChoices):
     TARDE = 'T', 'Tarde'
 
 class NivelUrgencia(models.IntegerChoices):
-    BAJA = 1, 'Baja'
-    MEDIA = 2, 'Media'
     ALTA = 3, 'Alta'
+    MEDIA = 2, 'Media'
+    BAJA = 1, 'Baja'
 
 # ==========================================
 # 2. ENTIDADES PRINCIPALES
@@ -127,7 +127,7 @@ class EstadoCita(models.TextChoices):
     ATENDIDA = 'A', 'Atendida'
 
 class Cita(models.Model):
-    paciente = models.ForeignKey(Paciente, on_delete=models.CASCADE, related_name='citas')
+    paciente = models.ForeignKey(Paciente, on_delete=models.CASCADE, related_name='citas', null=True, blank=True)
     medico = models.ForeignKey(Medico, on_delete=models.CASCADE, related_name='citas')
     especialidad = models.ForeignKey(Especialidad, on_delete=models.CASCADE, null=True, blank=True)
     centro = models.ForeignKey(Centro, on_delete=models.CASCADE, null=True, blank=True)
@@ -191,12 +191,12 @@ class Cita(models.Model):
         if diferencia % DURACION_CITA != 0:
             raise ValidationError(f"Las citas deben respetar los intervalos de {DURACION_CITA} minutos.")
 
-        # Validación de solapamientos
+        # Validación de solapamientos (Ignoramos canceladas y en espera de reasignación)
         cita_medico_ocupada = Cita.objects.filter(
             medico=self.medico,
             fecha=self.fecha,
             hora_inicio=self.hora_inicio
-        ).exclude(id=self.id).exclude(estado=EstadoCita.CANCELADA).exists()
+        ).exclude(id=self.id).exclude(estado__in=[EstadoCita.CANCELADA, EstadoCita.EN_ESPERA]).exists()
 
         if cita_medico_ocupada:
             raise ValidationError("El médico ya tiene una cita asignada en este horario.")
@@ -205,7 +205,7 @@ class Cita(models.Model):
             paciente=self.paciente,
             fecha=self.fecha,
             hora_inicio=self.hora_inicio
-        ).exclude(id=self.id).exclude(estado=EstadoCita.CANCELADA).exists()
+        ).exclude(id=self.id).exclude(estado__in=[EstadoCita.CANCELADA, EstadoCita.EN_ESPERA]).exists()
 
         if cita_paciente_ocupada:
             raise ValidationError("El paciente ya tiene una cita programada en este horario.")
@@ -257,6 +257,13 @@ class PropuestaReasignacion(models.Model):
         max_length=20, 
         choices=EstadoPropuesta.choices, 
         default=EstadoPropuesta.PENDIENTE
+    )
+    
+    token_respuesta = models.UUIDField(
+        default=uuid.uuid4, 
+        editable=False, 
+        unique=True,
+        help_text="Token único para la validación de la arquitectura One-Click."
     )
 
     class Meta:
@@ -355,7 +362,7 @@ def procesar_borrado_cita(sender, instance, **kwargs):
     if instance.fecha >= datetime.date.today() and instance.estado not in [EstadoCita.CANCELADA, EstadoCita.ATENDIDA]:
         try:
             Cita.objects.create(
-                paciente=instance.paciente,
+                paciente=None, # El hueco queda libre sin dueño
                 medico=instance.medico,
                 especialidad=instance.especialidad,
                 centro=instance.centro,
