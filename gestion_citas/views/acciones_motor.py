@@ -104,10 +104,7 @@ def rechazar_propuesta(request, token):
     if propuesta.paciente.user != request.user:
         logout(request)
         return redirect(f'/login/?next={request.path}')
-<<<<<<< HEAD
 
-=======
->>>>>>> develop
     if propuesta.estado == EstadoPropuesta.PENDIENTE:
         propuesta.estado = EstadoPropuesta.RECHAZADA
         propuesta.save()
