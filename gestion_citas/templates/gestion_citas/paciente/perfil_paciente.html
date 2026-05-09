@@ -92,8 +92,8 @@
                 </div>
 
                 <div style="display: flex; gap: 15px;">
-                    <form action="{% url 'aceptar_propuesta' propuesta.id %}" method="post">{% csrf_token %}<button type="submit" class="premium-btn" style="background: var(--secondary); font-size: 0.9rem;">Confirmar Adelanto</button></form>
-                    <form action="{% url 'rechazar_propuesta' propuesta.id %}" method="post">{% csrf_token %}<button type="submit" class="btn-cancel-soft" style="font-size: 0.9rem; padding: 12px 20px;">Mantener original</button></form>
+                    <form action="{% url 'aceptar_propuesta' propuesta.token_respuesta %}" method="post">{% csrf_token %}<button type="submit" class="premium-btn" style="background: var(--secondary); font-size: 0.9rem;">Confirmar Adelanto</button></form>
+                    <form action="{% url 'rechazar_propuesta' propuesta.token_respuesta %}" method="post">{% csrf_token %}<button type="submit" class="btn-cancel-soft" style="font-size: 0.9rem; padding: 12px 20px;">Mantener original</button></form>
                 </div>
             </div>
         {% endif %}
@@ -101,7 +101,7 @@
         <div class="citas-grid">
             {% if citas %}
                 {% for cita in citas %}
-                <div class="cita-card" {% if cita.estado == 'X' %}style="opacity: 0.5;"{% endif %}>
+                <div class="cita-card" {% if cita.estado_visual == 'X' %}style="opacity: 0.5;"{% endif %}>
                     <div class="cita-time">
                         <span class="date">{{ cita.fecha|date:"d M Y" }}</span>
                         <span class="hour"><i class="far fa-clock"></i> {{ cita.hora_inicio|time:"H:i" }}</span>
@@ -111,8 +111,16 @@
                         <div style="color: var(--text-muted); font-size: 0.85rem; margin-top: 4px;"><i class="fas fa-stethoscope"></i> {{ cita.medico.especialidad }}</div>
                     </div>
                     <div style="display: flex; align-items: center; gap: 20px;">
-                        <span class="badge status-{{ cita.estado }}">{{ cita.get_estado_display }}</span>
-                        {% if cita.estado != 'X' %} 
+                        <span class="badge status-{{ cita.estado_visual }}">
+                            {% if cita.estado_visual == 'X' %}Cancelada{% else %}{{ cita.get_estado_display }}{% endif %}
+                        </span>
+
+                        {% if cita.estado_visual == 'A' and cita.consulta_medica %}
+                            <a href="{% url 'descargar_informe_pdf' cita.consulta_medica.id %}" class="btn-outline" style="font-size: 0.8rem; padding: 8px 15px; text-decoration: none; display: flex; align-items: center; gap: 5px;">
+                                <i class="fas fa-file-pdf"></i> Informe
+                            </a>
+                        {% endif %}
+                        {% if cita.estado_visual == 'C' or cita.estado_visual == 'P' %} 
                             <form action="{% url 'cancelar_cita' cita.id %}" method="post" onsubmit="return confirm('¿Seguro que quieres cancelar esta cita?');" style="margin: 0;">
                                 {% csrf_token %}<button type="submit" class="btn-cancel-soft">Cancelar</button>
                             </form>

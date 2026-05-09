@@ -45,8 +45,8 @@
 
             <div class="buttons-container">
                 <!-- Enlaces absolutos inyectados por el motor -->
-                <a href="{{ dominio }}{% url 'aceptar_propuesta' propuesta.id %}" class="btn btn-accept">✅ Confirmar Adelanto</a>
-                <a href="{{ dominio }}{% url 'rechazar_propuesta' propuesta.id %}" class="btn btn-reject">❌ Rechazar (Mantener mi cita actual)</a>
+                <a href="{{ dominio }}{% url 'aceptar_propuesta' propuesta.token_respuesta %}" class="btn btn-accept">✅ Confirmar Adelanto</a>
+                <a href="{{ dominio }}{% url 'rechazar_propuesta' propuesta.token_respuesta %}" class="btn btn-reject">❌ Rechazar (Mantener mi cita actual)</a>
             </div>
             
             <p style="text-align: center; margin-top: 25px; font-size: 13px; color: #94a3b8;">
