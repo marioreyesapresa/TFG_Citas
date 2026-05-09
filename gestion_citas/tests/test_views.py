@@ -14,7 +14,7 @@ class MotorVistasIntegracionTests(TestCase):
         self.esp = Especialidad.objects.create(nombre="Test")
         self.centro = Centro.objects.create(nombre="Centro")
         self.u_med = User.objects.create_user(username="dr")
-        self.medico = Medico.objects.create(user=self.u_med, especialidad=self.esp, centro=self.centro)
+        self.medico = Medico.objects.create(user=self.u_med, especialidad=self.esp, centro=self.centro, numero_colegiado="123")
         
         for i in range(7):
             HorarioMedico.objects.get_or_create(

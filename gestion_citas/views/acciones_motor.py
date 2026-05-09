@@ -25,22 +25,20 @@ def aceptar_propuesta(request, token):
     if propuesta.paciente.user != request.user:
         logout(request)
         return redirect(f'/login/?next={request.path}')
-
     if propuesta.estado == EstadoPropuesta.PENDIENTE and propuesta.fecha_limite > timezone.now():
         cita = propuesta.cita_original
         
-        # --- REACCIÓN EN CADENA: Detectar Hueco Abandonado ---
+        # Guardamos los datos de la cita actual que va a ser liberada
         fecha_vieja = cita.fecha
         hora_vieja = cita.hora_inicio
         nuevo_nivel_cascada = propuesta.hueco.nivel_cascada + 1
         
-        # Movemos al paciente al nuevo hueco
+        # Actualizamos la cita del paciente con el nuevo hueco
         cita.fecha = propuesta.hueco.fecha
         cita.hora_inicio = propuesta.hueco.hora_inicio
         cita.nivel_cascada = propuesta.hueco.nivel_cascada 
         cita.save() 
         
-        # Marcamos propuesta como aceptada
         propuesta.estado = EstadoPropuesta.ACEPTADA
         propuesta.save()
 
@@ -78,7 +76,6 @@ def rechazar_propuesta(request, token):
     if propuesta.paciente.user != request.user:
         logout(request)
         return redirect(f'/login/?next={request.path}')
-
     if propuesta.estado == EstadoPropuesta.PENDIENTE:
         propuesta.estado = EstadoPropuesta.RECHAZADA
         propuesta.save()
@@ -95,6 +92,9 @@ def rechazar_propuesta(request, token):
 @login_required
 @require_POST
 def eliminar_notificacion(request, notificacion_id):
+    """
+    Elimina una notificación del panel del paciente.
+    """
     notificacion = get_object_or_404(Notificacion, id=notificacion_id, paciente=request.user.paciente)
     notificacion.delete()
     return redirect('perfil_paciente')

@@ -16,20 +16,20 @@ class ModelsFullCoverageTests(TestCase):
         u1 = User.objects.create_user(username="m1", first_name="Dr A", last_name="B")
         esp = Especialidad.objects.create(nombre="E")
         c = Centro.objects.create(nombre="C")
-        med = Medico.objects.create(user=u1, especialidad=esp, centro=c)
+        med = Medico.objects.create(user=u1, especialidad=esp, centro=c, numero_colegiado="COL-001")
         
         self.assertEqual(str(med), "Dr/a. B (E)")
         
     def test_paciente_str(self):
         u2 = User.objects.create_user(username="p1", first_name="Pac", last_name="X")
-        pac = Paciente.objects.create(user=u2, dni="12345678Z")
+        pac = Paciente.objects.create(user=u2, dni="12345678Z", telefono="600111222")
         self.assertEqual(str(pac), "Pac X")
         
     def test_horariomedico_clean_and_str(self):
         u1 = User.objects.create_user(username="m_hm", first_name="Dr", last_name="C")
         esp = Especialidad.objects.create(nombre="E")
         c = Centro.objects.create(nombre="C")
-        med = Medico.objects.create(user=u1, especialidad=esp, centro=c)
+        med = Medico.objects.create(user=u1, especialidad=esp, centro=c, numero_colegiado="COL-001")
         
         hm = HorarioMedico(medico=med, dia_semana=0, hora_inicio=time(9,0), hora_fin=time(14,0))
         hm.clean() # should pass
@@ -55,8 +55,8 @@ class ModelsFullCoverageTests(TestCase):
         u2 = User.objects.create_user(username="p_c", first_name="Pac", last_name="X")
         esp = Especialidad.objects.create(nombre="E")
         c = Centro.objects.create(nombre="C")
-        med = Medico.objects.create(user=u1, especialidad=esp, centro=c)
-        pac = Paciente.objects.create(user=u2, dni="11111111H")
+        med = Medico.objects.create(user=u1, especialidad=esp, centro=c, numero_colegiado="COL-001")
+        pac = Paciente.objects.create(user=u2, dni="11111111H", telefono="600111222")
         
         lunes = date.today()
         from datetime import timedelta
@@ -75,6 +75,6 @@ class ModelsFullCoverageTests(TestCase):
         
     def test_notificacion(self):
         u2 = User.objects.create_user(username="p_n", first_name="Pac", last_name="X")
-        pac = Paciente.objects.create(user=u2, dni="22222222J")
+        pac = Paciente.objects.create(user=u2, dni="22222222J", telefono="600111222")
         n = Notificacion.objects.create(paciente=pac, mensaje="M")
         self.assertEqual(str(n), "Notificación para Pac X: No leída")

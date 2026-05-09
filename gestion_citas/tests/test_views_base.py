@@ -12,10 +12,10 @@ class BaseViewsTests(TestCase):
         
         self.u_admin = User.objects.create_superuser(username="admin_test", password="123")
         self.u_med = User.objects.create_user(username="med_test", password="123")
-        self.medico = Medico.objects.create(user=self.u_med, especialidad=self.esp, centro=self.centro)
+        self.medico = Medico.objects.create(user=self.u_med, especialidad=self.esp, centro=self.centro, numero_colegiado="123")
         
         self.u_pac = User.objects.create_user(username="pac_test", password="123")
-        self.paciente = Paciente.objects.create(user=self.u_pac, dni="11")
+        self.paciente = Paciente.objects.create(user=self.u_pac, dni="11", telefono="600111222")
         
         self.u_no_role = User.objects.create_user(username="none_test", password="123")
     

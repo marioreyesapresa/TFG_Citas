@@ -1,6 +1,5 @@
-import datetime
-from datetime import datetime, timedelta
 import logging
+from datetime import datetime, timedelta
 from django.utils import timezone
 from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
@@ -10,7 +9,7 @@ from .models import Cita, EstadoCita, PropuestaReasignacion, Turno, EstadoPropue
 logger = logging.getLogger(__name__)
 
 def _mask_email(email):
-    """Devuelve una versión enmascarada de un email para logs (evita exponer PII completa)."""
+    """Enmascara un email para propósitos de logging."""
     if not email:
         return ""
     try:
@@ -20,126 +19,109 @@ def _mask_email(email):
     masked_local = local[0] + "***" + local[-1] if len(local) > 2 else "*" * len(local)
     return f"{masked_local}@{domain}"
 
-# TIEMPO LÍMITE PARA RESPONDER (Requisito R8)
+# Tiempo límite para responder a una propuesta (horas)
 HORAS_TTL = 24 
 
 def determinar_turno(hora):
-    """Devuelve 'M' si es antes de las 15:00, 'T' si es después."""
+    """Determina si una hora pertenece al turno de mañana o tarde."""
     if hora.hour < 15:
         return Turno.MANANA
     return Turno.TARDE
 
 def iniciar_reasignacion(cita_cancelada):
     """
-    Algoritmo Determinista de Reasignación (TFG).
-    Se ejecuta automáticamente cuando una cita pasa a estado 'CANCELADA'.
+    Inicia el proceso de reasignación inteligente para un hueco liberado.
+    Evalúa candidatos mediante un algoritmo de scoring paramétrico.
     """
-    print(f"\n🚀 [MOTOR] Cita cancelada. Analizando hueco: {cita_cancelada.fecha} a las {cita_cancelada.hora_inicio} (Dr. {cita_cancelada.medico.user.last_name})")
+    logger.info(f"Iniciando motor de reasignación para hueco: {cita_cancelada.fecha} {cita_cancelada.hora_inicio}")
 
-    # --- CIRCUIT BREAKER: Control de Reacción en Cadena ---
+    # Control de profundidad de cascada (Circuit Breaker)
     if cita_cancelada.nivel_cascada >= 5:
-        print(f"🛑 [MOTOR] Límite de cascada alcanzado (Nivel {cita_cancelada.nivel_cascada}). Deteniendo reevaluación para evitar saturación.")
+        logger.warning(f"Límite de cascada alcanzado para hueco {cita_cancelada.id}. Abortando reevaluación.")
         return
 
-    # 0. CARGAR CONFIGURACIÓN DINÁMICA
+    # Cargar configuración de pesos
     config = ConfiguracionReasignacion.objects.first()
     if not config:
-        # Fallback por seguridad si no hay config en DB
         peso_urgencia = 15.0
         peso_turno = 10.0
         peso_antiguedad = 0.1
-        print("⚠️ [MOTOR] No hay configuración global. Usando valores por defecto.")
     else:
         peso_urgencia = config.peso_urgencia
         peso_turno = config.prioridad_turno
         peso_antiguedad = config.peso_antiguedad
-        print(f"⚙️ [MOTOR] Configuración cargada -> Urgencia:{peso_urgencia}, Turno:{peso_turno}, Antigüedad:{peso_antiguedad}")
 
-    # --- PROTECCIÓN PARA PRUEBAS ---
+    # Evitar procesar huecos pasados
     if cita_cancelada.fecha < datetime.today().date():
-        print("🤷 [MOTOR] El hueco liberado es del pasado. Abortando.")
         return
 
-    # 1. IDENTIFICAR EL HUECO LIBRE
     medico = cita_cancelada.medico
     fecha_hueco = cita_cancelada.fecha
     hora_hueco = cita_cancelada.hora_inicio
     turno_hueco = determinar_turno(hora_hueco)
 
-    # 2. BUSCAR CANDIDATOS (Requisito R4)
+    # Buscar candidatos potenciales (pacientes con citas futuras con el mismo médico)
     candidatos = Cita.objects.filter(
         medico=medico,
         fecha__gt=fecha_hueco, 
         estado__in=[EstadoCita.PENDIENTE, EstadoCita.CONFIRMADA]
     ).select_related('paciente')
 
-    print(f"🔍 [MOTOR] {candidatos.count()} candidatos futuros encontrados.")
-
     mejor_candidato = None
-    mejor_puntuacion = -1000 # Score inicial bajo
+    mejor_puntuacion = -1000 
 
-    # 3. EVALUACIÓN Y PUNTUACIÓN (Requisito R5)
+    # Evaluación de candidatos
     for candidato in candidatos:
         puntuacion = 0
         paciente = candidato.paciente
         
-        # --- REGLA A: Preferencia de Turno (Configurable) ---
+        # Criterio A: Preferencia de Turno
         if paciente.preferencia_turno == turno_hueco:
             puntuacion += peso_turno
         else:
-            puntuacion -= (peso_turno / 2) # Penalización proporcional
+            puntuacion -= (peso_turno / 2)
 
-        # --- REGLA B: Urgencia Médica (Configurable) ---
+        # Criterio B: Urgencia Médica
         puntuacion += (candidato.urgencia * peso_urgencia)
 
-        # --- REGLA C: Distancia temporal / Antigüedad (Configurable) ---
-        # Cuanto más lejos esté la cita original, más "antigüedad" o "ganas de adelantar" tiene.
+        # Criterio C: Antigüedad de la cita original (distancia temporal)
         dias_diferencia = (candidato.fecha - fecha_hueco).days
         puntuacion += (dias_diferencia * peso_antiguedad) 
 
-        # --- REGLA D: Restricción Dura (Inmutabilidad diaria) ---
+        # Restricción: No asignar si ya tiene otra cita el mismo día
         tiene_cita_ese_dia = Cita.objects.filter(
             paciente=paciente, 
             fecha=fecha_hueco
         ).exclude(estado=EstadoCita.CANCELADA).exists()
 
         if tiene_cita_ese_dia:
-            print(f"   ❌ [MOTOR] Descartado {paciente}: Ya tiene cita ese día.")
             continue
 
-        # --- REGLA E: Filtros de Propuestas Previas ---
-        # 1. No volver a ofrecerle el MISMO hueco si ya se le ofreció antes (Rechazada, Expirada...)
+        # Restricción: No repetir ofertas para el mismo hueco
         ya_se_le_ofrecio_este_hueco = PropuestaReasignacion.objects.filter(
             paciente=paciente,
             hueco=cita_cancelada
         ).exists()
 
         if ya_se_le_ofrecio_este_hueco:
-            print(f"   ❌ [MOTOR] Descartado {paciente}: Ya se le ofreció este hueco.")
             continue
 
-        # 2. No abrumar al paciente si ya tiene OTRA propuesta diferente todavía pendiente de que la responda.
+        # Restricción: Un paciente solo puede tener una propuesta activa
         ya_tiene_propuesta_activa = PropuestaReasignacion.objects.filter(
             paciente=paciente,
             estado=EstadoPropuesta.PENDIENTE
         ).exists()
 
         if ya_tiene_propuesta_activa:
-            print(f"   ❌ [MOTOR] Descartado {paciente}: Ya tiene otra propuesta activa.")
             continue
 
-        print(f"   ✅ [MOTOR] Candidato: {paciente} | Score: {puntuacion:.2f}")
-
-        # 4. SELECCIÓN DEL MEJOR
+        # Selección del mejor candidato basado en el score calculado
         if puntuacion > mejor_puntuacion:
             mejor_puntuacion = puntuacion
             mejor_candidato = candidato
 
-    # 5. GENERACIÓN DE LA PROPUESTA Y NOTIFICACIÓN
+    # Ejecución de la propuesta
     if mejor_candidato:
-        print(f"🏆 [MOTOR] Hueco propuesto automáticamente al paciente: {mejor_candidato.paciente} | Usuario: @{mejor_candidato.paciente.user.username} (Score: {mejor_puntuacion:.2f})")
-        
-        # Crear la propuesta
         propuesta = PropuestaReasignacion.objects.create(
             cita_original=mejor_candidato,
             paciente=mejor_candidato.paciente,
@@ -163,11 +145,9 @@ def iniciar_reasignacion(cita_cancelada):
             mensaje=mensaje_notificacion
         )
         
-        # ENVIAR CORREO ELECTRÓNICO EN FORMATO HTML PREMIUM (Requisito R7 y R15)
+        # Envío de notificación por correo electrónico
         email_destino = mejor_candidato.paciente.user.email
-        
         if email_destino:
-            # Dominio para URLs absolutas en el correo
             dominio = getattr(settings, "SITE_BASE_URL", "http://127.0.0.1:8000")
             
             contexto = {
@@ -181,28 +161,22 @@ def iniciar_reasignacion(cita_cancelada):
             }
             
             html_content = render_to_string('gestion_citas/emails/propuesta_mail.html', contexto)
-            text_content = f"Hola {mejor_candidato.paciente.user.first_name},\n\n{mensaje_notificacion}\n\nEntra en {dominio} para gestionarla."
+            text_content = f"Hola {mejor_candidato.paciente.user.first_name},\n\n{mensaje_notificacion}\n\nAcceda a {dominio} para gestionarla."
             
             correo = EmailMultiAlternatives(
-                subject='✨ Nueva Propuesta de Adelanto de Cita Disponible',
+                subject='Nueva propuesta de adelanto de cita disponible',
                 body=text_content,
                 from_email='noreply@tfg-citas.com',
                 to=[email_destino]
             )
             correo.attach_alternative(html_content, "text/html")
+            
             try:
                 correo.send(fail_silently=False)
-                masked_email = _mask_email(email_destino)
-                print(f"📧 EMAIL ENVIADO a {masked_email}")
-                logger.info(f"EMAIL HTML PREMIUM enviado a {masked_email}")
-            except Exception:
-                masked_email = _mask_email(email_destino)
-                print(f"⚠️ ERROR al enviar EMAIL a {masked_email}. Se continúa sin interrumpir la operación.")
-                logger.error("Error al enviar EMAIL a %s", masked_email, exc_info=True)
-
-        else:
-            print(f"⚠️ MOTOR: El paciente {mejor_candidato.paciente} no tiene email asociado. Solo se envió notificación web.")
-
-        print("📨 MOTOR: Propuesta y Notificación creadas con éxito.")
+                logger.info(f"Email de propuesta enviado a {_mask_email(email_destino)}")
+            except Exception as e:
+                logger.error(f"Error al enviar email a {_mask_email(email_destino)}: {e}")
+        
+        logger.info(f"Propuesta generada con éxito para el paciente {mejor_candidato.paciente.id}")
     else:
-        print("🤷 MOTOR: No hay candidatos aptos.")
+        logger.info("No se han encontrado candidatos aptos para el hueco libre.")
