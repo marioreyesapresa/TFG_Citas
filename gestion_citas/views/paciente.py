@@ -258,11 +258,21 @@ def cargar_horas_libres(request):
     while actual < fin:
         horas_posibles.append(actual.time())
         actual += timedelta(minutes=30)
+    # Bloqueamos citas ocupadas (incluyendo las bloqueadas por el motor 'EN_ESPERA')
     citas_ocupadas = Cita.objects.filter(
         medico=medico, 
         fecha=fecha_obj, 
         estado__in=[EstadoCita.PENDIENTE, EstadoCita.CONFIRMADA, EstadoCita.EN_ESPERA]
     ).values_list('hora_inicio', flat=True)
-    citas_ocupadas_limpias = [h.replace(second=0, microsecond=0) for h in citas_ocupadas]
+
+    # REFUERZO: También bloqueamos si hay una propuesta de reasignación activa para ese médico/fecha/hora
+    # Esto evita que alguien se cuela si por algún motivo el estado 'R' no se guardó bien.
+    huecos_propuestos = PropuestaReasignacion.objects.filter(
+        hueco__medico=medico,
+        hueco__fecha=fecha_obj,
+        estado=EstadoPropuesta.PENDIENTE
+    ).values_list('hueco__hora_inicio', flat=True)
+
+    citas_ocupadas_limpias = [h.replace(second=0, microsecond=0) for h in list(citas_ocupadas) + list(huecos_propuestos)]
     horas_libres = [h.strftime('%H:%M') for h in horas_posibles if h not in citas_ocupadas_limpias]
     return JsonResponse({'horas': horas_libres})
