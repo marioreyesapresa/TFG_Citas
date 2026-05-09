@@ -83,9 +83,12 @@ def rechazar_propuesta(request, token):
         propuesta.estado = EstadoPropuesta.RECHAZADA
         propuesta.save()
         
-        # REEVALUACIÓN EN CASCADA
-        from ..algoritmo_reasignacion import iniciar_reasignacion
-        iniciar_reasignacion(propuesta.hueco)
+        # REEVALUACIÓN EN CASCADA (Liberamos el hueco 'R' a 'X' para que el motor busque al siguiente)
+        if propuesta.hueco:
+            propuesta.hueco.estado = EstadoCita.CANCELADA
+            propuesta.hueco.save()
+            from ..algoritmo_reasignacion import iniciar_reasignacion
+            iniciar_reasignacion(propuesta.hueco)
 
     return redirect('perfil_paciente')
 

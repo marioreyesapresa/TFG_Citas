@@ -147,6 +147,10 @@ def iniciar_reasignacion(cita_cancelada):
             fecha_limite=timezone.now() + timedelta(hours=HORAS_TTL)
         )
         
+        # BLOQUEO DE HUECO (Evita que otros pacientes se "cuelen" mientras el candidato decide)
+        cita_cancelada.estado = EstadoCita.EN_ESPERA
+        cita_cancelada.save()
+        
         # Opcional: Podrías querer marcar la cita_original como PENDIENTE de cambio
         # Pero según tu petición, simplemente las nuevas propuestas son las que gestionan el flujo.
 
