@@ -4,7 +4,8 @@ from django.utils import timezone
 from django.contrib import messages
 from django.core.exceptions import ValidationError
 from django.http import JsonResponse
-from django.db.models import Case, When, Value, IntegerField
+from django.db import models
+from django.db.models import Case, When, Value, IntegerField, CharField
 from datetime import datetime, timedelta
 import logging
 
@@ -55,13 +56,18 @@ def perfil_paciente(request):
     else:
         form = PacienteForm(instance=paciente)
     
+    # UX: El paciente debe ver las citas "En espera" como "Canceladas" (R8)
     citas = Cita.objects.filter(paciente=paciente).annotate(
+        estado_visual=Case(
+            When(estado=EstadoCita.EN_ESPERA, then=Value(EstadoCita.CANCELADA)),
+            default='estado',
+            output_field=CharField(),
+        ),
         prioridad=Case(
             When(estado=EstadoCita.CONFIRMADA, then=Value(1)),
             When(estado=EstadoCita.PENDIENTE, then=Value(2)),
-            When(estado=EstadoCita.EN_ESPERA, then=Value(3)),
-            When(estado=EstadoCita.ATENDIDA, then=Value(4)),
-            When(estado=EstadoCita.CANCELADA, then=Value(5)),
+            When(estado=EstadoCita.ATENDIDA, then=Value(3)),
+            When(estado__in=[EstadoCita.CANCELADA, EstadoCita.EN_ESPERA], then=Value(4)),
             output_field=IntegerField(),
         )
     ).select_related('medico__user', 'centro', 'consulta_medica').order_by('prioridad', 'fecha', 'hora_inicio')

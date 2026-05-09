@@ -19,10 +19,14 @@ def aceptar_propuesta(request, token):
     propuesta = PropuestaReasignacion.objects.filter(token_respuesta=token).first()
     
     if not propuesta:
+        from django.contrib import messages
+        messages.error(request, "Lo sentimos, este enlace de adelanto ya no es válido o la propuesta ha expirado.")
         return redirect('dashboard')
 
     # SEGURIDAD INTELIGENTE: Si el usuario logueado no es el dueño de la propuesta
     if propuesta.paciente.user != request.user:
+        from django.contrib import messages
+        messages.warning(request, f"Lo sentimos, esta propuesta pertenece a otro paciente. Has sido desconectado automáticamente para que puedas entrar con la cuenta correcta.")
         logout(request)
         return redirect(f'/login/?next={request.path}')
     if propuesta.estado == EstadoPropuesta.PENDIENTE and propuesta.fecha_limite > timezone.now():
@@ -30,32 +34,55 @@ def aceptar_propuesta(request, token):
         
         # Guardamos los datos de la cita actual que va a ser liberada
         fecha_vieja = cita.fecha
+        # 1. Guardamos los datos del hueco (destino) antes de borrarlo
+        nueva_fecha = propuesta.hueco.fecha
+        nueva_hora = propuesta.hueco.hora_inicio
+        nuevo_nivel = propuesta.hueco.nivel_cascada
+        
+        # 2. Guardamos los datos de la cita actual (que quedará libre)
+        fecha_vieja = cita.fecha
         hora_vieja = cita.hora_inicio
-        nuevo_nivel_cascada = propuesta.hueco.nivel_cascada + 1
-        
-        # Actualizamos la cita del paciente con el nuevo hueco
-        cita.fecha = propuesta.hueco.fecha
-        cita.hora_inicio = propuesta.hueco.hora_inicio
-        cita.nivel_cascada = propuesta.hueco.nivel_cascada 
-        cita.save() 
-        
+        nivel_vieja_mejorado = nuevo_nivel + 1
+
+        # 3. Desvinculamos el hueco de la propuesta para poder guardarla (evita ValueError)
+        hueco_a_borrar = propuesta.hueco
+        propuesta.hueco = None 
         propuesta.estado = EstadoPropuesta.ACEPTADA
         propuesta.save()
 
-        # CONSUMO DEL HUECO
-        propuesta.hueco.delete()
+        # 4. Movemos la cita del paciente (Usamos .update() para que el cambio sea instantáneo en la BD)
+        # IMPORTANTE: Hacemos esto ANTES de borrar el hueco físico. Así, cuando el motor se dispare
+        # por el borrado del hueco, ya verá al paciente ocupando este horario y no le mandará duplicados.
+        Cita.objects.filter(id=cita.id).update(
+            fecha=nueva_fecha,
+            hora_inicio=nueva_hora,
+            nivel_cascada=nuevo_nivel
+        )
 
-        # LIBERACIÓN DEL HUECO VIEJO: Efecto Cascada
-        Cita.objects.create(
-            paciente=cita.paciente,
+        # 5. CONSUMO DEL HUECO (Liberamos el espacio físico para evitar conflictos de validación)
+        hueco_a_borrar.delete()
+
+        # 6. LIMPIEZA: Marcamos el resto de propuestas pendientes como rechazadas para que desaparezcan
+        PropuestaReasignacion.objects.filter(
+            paciente=cita.paciente, 
+            estado=EstadoPropuesta.PENDIENTE
+        ).exclude(id=propuesta.id).update(estado=EstadoPropuesta.RECHAZADA)
+
+        # 5. LIBERACIÓN DEL HUECO VIEJO: Efecto Cascada (Sin paciente vinculado para evitar confusión)
+        hueco_fantasma = Cita.objects.create(
+            paciente=None, 
             medico=cita.medico,
             especialidad=cita.especialidad,
             centro=cita.centro,
             fecha=fecha_vieja,
             hora_inicio=hora_vieja,
             estado=EstadoCita.CANCELADA,
-            nivel_cascada=nuevo_nivel_cascada
+            nivel_cascada=nivel_vieja_mejorado
         )
+
+        # 6. DISPARO MANUAL DE LA CASCADA: Nos aseguramos de que el motor busque al siguiente
+        from ..algoritmo_reasignacion import iniciar_reasignacion
+        iniciar_reasignacion(hueco_fantasma)
         
     return redirect('perfil_paciente')
 

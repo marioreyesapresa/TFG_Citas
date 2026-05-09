@@ -48,6 +48,7 @@
         
         <form method="post">
             {% csrf_token %}
+            <input type="hidden" name="next" value="{{ request.GET.next }}">
             <div class="form-group">
                 <i class="fas fa-user-circle"></i>
                 <input type="text" name="username" class="premium-input" placeholder="Usuario de acceso" required autofocus>

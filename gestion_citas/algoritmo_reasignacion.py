@@ -36,6 +36,7 @@ def iniciar_reasignacion(cita_cancelada):
     logger.info(f"Iniciando motor de reasignación para hueco: {cita_cancelada.fecha} {cita_cancelada.hora_inicio}")
 
     # Control de profundidad de cascada (Circuit Breaker)
+    logger.info(f"Procesando cascada nivel {cita_cancelada.nivel_cascada} para el hueco {cita_cancelada.id}")
     if cita_cancelada.nivel_cascada >= 5:
         logger.warning(f"Límite de cascada alcanzado para hueco {cita_cancelada.id}. Abortando reevaluación.")
         return
@@ -88,19 +89,26 @@ def iniciar_reasignacion(cita_cancelada):
         dias_diferencia = (candidato.fecha - fecha_hueco).days
         puntuacion += (dias_diferencia * peso_antiguedad) 
 
-        # Restricción: No asignar si ya tiene otra cita el mismo día
-        tiene_cita_ese_dia = Cita.objects.filter(
-            paciente=paciente, 
-            fecha=fecha_hueco
+        # Restricción: No asignar si el paciente ya tiene ocupada ESA HORA exacta (evita solapamientos)
+        tiene_cita_solapada = Cita.objects.filter(
+            paciente=paciente,
+            fecha=fecha_hueco,
+            hora_inicio=hora_hueco
         ).exclude(estado=EstadoCita.CANCELADA).exists()
 
-        if tiene_cita_ese_dia:
+        if tiene_cita_solapada:
             continue
 
-        # Restricción: No repetir ofertas para el mismo hueco
+        # Restricción: No asignar si ya tiene otra cita el mismo día (opcional, según política del centro)
+        # Por ahora lo mantenemos flexible: permitimos dos citas el mismo día si son a horas distintas,
+        # pero NUNCA a la misma hora exacta.
+
+        # Restricción: No repetir ofertas para el mismo sitio exacto (Médico + Fecha + Hora)
         ya_se_le_ofrecio_este_hueco = PropuestaReasignacion.objects.filter(
             paciente=paciente,
-            hueco=cita_cancelada
+            hueco__medico=medico,
+            hueco__fecha=fecha_hueco,
+            hueco__hora_inicio=hora_hueco
         ).exists()
 
         if ya_se_le_ofrecio_este_hueco:
