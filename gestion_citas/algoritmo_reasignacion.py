@@ -170,6 +170,7 @@ def iniciar_reasignacion(cita_cancelada):
             
             contexto = {
                 'paciente_nombre': mejor_candidato.paciente.user.first_name,
+                'paciente_username': mejor_candidato.paciente.user.username,
                 'medico_nombre': medico.user.last_name,
                 'fecha': fecha_hueco.strftime('%d/%m/%Y'),
                 'hora': hora_hueco.strftime('%H:%M'),
