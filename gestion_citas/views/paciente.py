@@ -84,10 +84,10 @@ def perfil_paciente(request):
             prop.estado = EstadoPropuesta.EXPIRADA
             prop.save()
             # Liberamos el hueco para que el motor busque al siguiente candidato
+            # El motor se dispara automáticamente mediante .save()
             if prop.hueco:
                 prop.hueco.estado = EstadoCita.CANCELADA
                 prop.hueco.save()
-                iniciar_reasignacion(prop.hueco)
 
     notificaciones_no_leidas = Notificacion.objects.filter(paciente=paciente, leida=False).order_by('-fecha_creacion')
     notificaciones_no_leidas.update(leida=True)
@@ -274,5 +274,16 @@ def cargar_horas_libres(request):
     ).values_list('hueco__hora_inicio', flat=True)
 
     citas_ocupadas_limpias = [h.replace(second=0, microsecond=0) for h in list(citas_ocupadas) + list(huecos_propuestos)]
-    horas_libres = [h.strftime('%H:%M') for h in horas_posibles if h not in citas_ocupadas_limpias]
+
+    ahora = timezone.now()
+    horas_libres = []
+    
+    # Bloqueo de citas para hoy: Solo permitimos a partir de mañana (R26)
+    if fecha_obj <= ahora.date():
+        return JsonResponse({'horas': []})
+
+    for h in horas_posibles:
+        if h not in citas_ocupadas_limpias:
+            horas_libres.append(h.strftime('%H:%M'))
+
     return JsonResponse({'horas': horas_libres})

@@ -81,9 +81,9 @@ def aceptar_propuesta(request, token):
             nivel_cascada=nivel_vieja_mejorado
         )
 
-        # 6. DISPARO MANUAL DE LA CASCADA: Nos aseguramos de que el motor busque al siguiente
-        from ..algoritmo_reasignacion import iniciar_reasignacion
-        iniciar_reasignacion(hueco_fantasma)
+        # 6. DISPARO DE LA CASCADA: El motor se dispara automáticamente mediante el hook .save() 
+        # al crear el hueco_fantasma con estado CANCELADA. No es necesaria la llamada manual.
+        pass
         
     return redirect('perfil_paciente')
 
@@ -109,12 +109,11 @@ def rechazar_propuesta(request, token):
         propuesta.estado = EstadoPropuesta.RECHAZADA
         propuesta.save()
         
-        # REEVALUACIÓN EN CASCADA (Liberamos el hueco 'R' a 'X' para que el motor busque al siguiente)
+        # REEVALUACIÓN EN CASCADA: Al marcar como CANCELADA y llamar a .save(), 
+        # el motor se dispara automáticamente. No es necesaria la llamada manual.
         if propuesta.hueco:
             propuesta.hueco.estado = EstadoCita.CANCELADA
             propuesta.hueco.save()
-            from ..algoritmo_reasignacion import iniciar_reasignacion
-            iniciar_reasignacion(propuesta.hueco)
 
     return redirect('perfil_paciente')
 

@@ -2,6 +2,7 @@ from django.db import models
 from django.db.models import Q
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
+from django.utils import timezone
 import datetime
 import uuid
 from datetime import timedelta
@@ -154,8 +155,12 @@ class Cita(models.Model):
         return f"Cita: {self.paciente} con {self.medico} el {self.fecha}"
     
     def clean(self):
-        if not self.id and self.fecha < datetime.date.today() and self.estado != EstadoCita.CANCELADA:
-            raise ValidationError("No se pueden crear citas en el pasado.")
+        ahora = timezone.now()
+        # Validación de futuro: Solo se pueden solicitar citas a partir de mañana (R26)
+        # Excluimos las ya canceladas para permitir que el motor las procese (cascada hacia hoy)
+        if not self.id and self.estado != EstadoCita.CANCELADA: 
+            if self.fecha <= ahora.date():
+                raise ValidationError("Para una mejor gestión, las nuevas citas deben solicitarse al menos con un día de antelación. Los huecos de hoy están reservados para reasignaciones urgentes.")
 
         if self.medico and self.especialidad:
             if self.medico.especialidad != self.especialidad:

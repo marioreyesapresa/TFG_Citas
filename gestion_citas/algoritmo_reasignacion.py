@@ -41,6 +41,12 @@ def iniciar_reasignacion(cita_cancelada):
         logger.warning(f"Límite de cascada alcanzado para hueco {cita_cancelada.id}. Abortando reevaluación.")
         return
 
+    # SEGURIDAD (V26): Evitar dobles ofertas para el mismo hueco físico
+    # Si ya existe una propuesta PENDIENTE vinculada a este hueco, no hacemos nada.
+    if PropuestaReasignacion.objects.filter(hueco=cita_cancelada, estado=EstadoPropuesta.PENDIENTE).exists():
+        logger.info(f"El hueco {cita_cancelada.id} ya tiene una propuesta pendiente activa. Abortando duplicado.")
+        return
+
     # Cargar configuración de pesos
     config = ConfiguracionReasignacion.objects.first()
     if not config:
@@ -52,8 +58,12 @@ def iniciar_reasignacion(cita_cancelada):
         peso_turno = config.prioridad_turno
         peso_antiguedad = config.peso_antiguedad
 
-    # Evitar procesar huecos pasados
-    if cita_cancelada.fecha < datetime.today().date():
+    # Evitar procesar huecos pasados (Control estricto de Fecha y Hora)
+    ahora = timezone.now()
+    if cita_cancelada.fecha < ahora.date():
+        return
+    if cita_cancelada.fecha == ahora.date() and cita_cancelada.hora_inicio < ahora.time():
+        logger.info(f"Hueco {cita_cancelada.id} pertenece al pasado hoy ({cita_cancelada.hora_inicio}). Ignorando.")
         return
 
     medico = cita_cancelada.medico
