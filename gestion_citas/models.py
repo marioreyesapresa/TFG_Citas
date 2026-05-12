@@ -247,7 +247,7 @@ class EstadoPropuesta(models.TextChoices):
 
 class PropuestaReasignacion(models.Model):
     cita_original = models.ForeignKey(Cita, on_delete=models.CASCADE, related_name='propuestas')
-    hueco = models.ForeignKey(Cita, on_delete=models.CASCADE, related_name='es_propuesta_de', null=True, blank=True)
+    hueco = models.ForeignKey(Cita, on_delete=models.SET_NULL, related_name='es_propuesta_de', null=True, blank=True)
     paciente = models.ForeignKey(Paciente, on_delete=models.CASCADE, related_name='propuestas_recibidas', null=True, blank=True)
     
     fecha_creacion = models.DateTimeField(auto_now_add=True)

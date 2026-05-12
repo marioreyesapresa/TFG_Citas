@@ -46,9 +46,8 @@ def aceptar_propuesta(request, token):
         hora_vieja = cita.hora_inicio
         nivel_vieja_mejorado = nuevo_nivel + 1
 
-        # 3. Desvinculamos el hueco de la propuesta para poder guardarla (evita ValueError)
+        # 3. Marcamos la propuesta como aceptada
         hueco_a_borrar = propuesta.hueco
-        propuesta.hueco = None 
         propuesta.estado = EstadoPropuesta.ACEPTADA
         propuesta.save()
 
