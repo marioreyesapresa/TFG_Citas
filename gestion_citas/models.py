@@ -155,11 +155,11 @@ class Cita(models.Model):
         return f"Cita: {self.paciente} con {self.medico} el {self.fecha}"
     
     def clean(self):
-        ahora = timezone.now()
         # Validación de futuro: Solo se pueden solicitar citas a partir de mañana (R26)
-        # Excluimos las ya canceladas para permitir que el motor las procese (cascada hacia hoy)
+        # Usamos localdate() para que coincida con la fecha actual en España
+        hoy = timezone.localdate()
         if not self.id and self.estado != EstadoCita.CANCELADA: 
-            if self.fecha <= ahora.date():
+            if self.fecha <= hoy:
                 raise ValidationError("Para una mejor gestión, las nuevas citas deben solicitarse al menos con un día de antelación. Los huecos de hoy están reservados para reasignaciones urgentes.")
 
         if self.medico and self.especialidad:

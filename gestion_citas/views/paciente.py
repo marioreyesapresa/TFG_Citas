@@ -275,11 +275,11 @@ def cargar_horas_libres(request):
 
     citas_ocupadas_limpias = [h.replace(second=0, microsecond=0) for h in list(citas_ocupadas) + list(huecos_propuestos)]
 
-    ahora = timezone.now()
+    hoy = timezone.localdate()
     horas_libres = []
     
     # Bloqueo de citas para hoy: Solo permitimos a partir de mañana (R26)
-    if fecha_obj <= ahora.date():
+    if fecha_obj <= hoy:
         return JsonResponse({'horas': []})
 
     for h in horas_posibles:
