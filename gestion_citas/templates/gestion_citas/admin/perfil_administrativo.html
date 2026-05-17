@@ -242,9 +242,18 @@
         </div>
     </div>
     <script>
-        // Sistema de Auto-Refresco para el TFG (cada 30 segundos)
+        // Sistema de Auto-Refresco para el TFG con preservación de Scroll
         let timerSeconds = 30;
         const liveIndicator = document.getElementById('live-timer');
+        const mainContent = document.querySelector('.main-content');
+        
+        // Restaurar posición del scroll
+        if (mainContent) {
+            const savedScroll = sessionStorage.getItem('adminScrollPosition');
+            if (savedScroll) {
+                mainContent.scrollTop = parseFloat(savedScroll);
+            }
+        }
         
         setInterval(() => {
             timerSeconds--;
@@ -252,6 +261,10 @@
                 liveIndicator.innerHTML = `<i class="fas fa-sync fa-spin"></i> Actualizando en ${timerSeconds}s`;
             }
             if (timerSeconds <= 0) {
+                // Guardar posición del scroll antes de recargar
+                if (mainContent) {
+                    sessionStorage.setItem('adminScrollPosition', mainContent.scrollTop);
+                }
                 location.reload();
             }
         }, 1000);
