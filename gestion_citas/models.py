@@ -178,16 +178,26 @@ class Cita(models.Model):
             return
 
         dia_semana_cita = self.fecha.weekday() 
-        horario = HorarioMedico.objects.filter(
+        horarios = HorarioMedico.objects.filter(
             medico=self.medico,              
             dia_semana=dia_semana_cita,      
-        ).first()
+        )
 
-        if not horario:
+        if not horarios.exists():
             raise ValidationError(f"El médico seleccionado no trabaja el día {self.fecha.strftime('%d/%m/%Y')}.")
         
-        if not (horario.hora_inicio <= self.hora_inicio < horario.hora_fin):
-             raise ValidationError(f"La hora debe estar dentro de la jornada laboral ({horario.hora_inicio.strftime('%H:%M')} - {horario.hora_fin.strftime('%H:%M')}).")
+        # Buscar si la cita cae dentro de alguno de los rangos de horario de ese día
+        horario_valido = None
+        for h in horarios:
+            if h.hora_inicio <= self.hora_inicio < h.hora_fin:
+                horario_valido = h
+                break
+        
+        if not horario_valido:
+            jornadas = ", ".join([f"{h.hora_inicio.strftime('%H:%M')} - {h.hora_fin.strftime('%H:%M')}" for h in horarios])
+            raise ValidationError(f"La hora debe estar dentro de la jornada laboral ({jornadas}).")
+        
+        horario = horario_valido
 
         minutos_inicio_medico = horario.hora_inicio.hour * 60 + horario.hora_inicio.minute
         minutos_cita = self.hora_inicio.hour * 60 + self.hora_inicio.minute
