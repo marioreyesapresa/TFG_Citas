@@ -11,7 +11,14 @@ def perfil_administrativo(request):
 
     medico_id = request.GET.get('medico')
     fecha_filtro = request.GET.get('fecha')
-    citas = Cita.objects.all().order_by('fecha', 'hora_inicio')
+    citas = Cita.objects.all().select_related(
+        'paciente',
+        'paciente__user',
+        'medico',
+        'medico__user',
+        'medico__especialidad',
+        'medico__centro'
+    ).order_by('fecha', 'hora_inicio')
 
     if medico_id:
         citas = citas.filter(medico_id=medico_id)
@@ -20,10 +27,14 @@ def perfil_administrativo(request):
     else:
         citas = citas.filter(fecha__gte=date.today())
 
-    medicos = Medico.objects.all()
+    medicos = Medico.objects.all().select_related('user')
     propuestas_activas = PropuestaReasignacion.objects.filter(
         estado=EstadoPropuesta.PENDIENTE,
         fecha_limite__gt=timezone.now()
+    ).select_related(
+        'paciente',
+        'paciente__user',
+        'hueco'
     ).order_by('-fecha_creacion')
 
     return render(request, 'gestion_citas/admin/perfil_administrativo.html', {
