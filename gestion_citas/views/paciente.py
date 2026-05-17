@@ -191,7 +191,7 @@ def solicitar_cita(request):
             logger.exception("Error al solicitar cita")
             error_personalizado = "Ha ocurrido un error inesperado al procesar su solicitud. Por favor, inténtelo de nuevo."
 
-    medicos = Medico.objects.all()
+    medicos = Medico.objects.all().select_related('user').order_by('user__last_name', 'user__first_name')
     horarios_json = {m.id: list(m.horarios.values_list('dia_semana', flat=True)) for m in medicos}
     
     resumen_horarios = {}

@@ -215,7 +215,7 @@
                 
                 <div class="person-block">
                     {% if cita.paciente %}
-                        <span>{{ cita.paciente }}</span>
+                        <span>{{ cita.paciente }} <small style="color: var(--text-muted); font-weight: normal;">(@{{ cita.paciente.user.username }})</small></span>
                         <small><i class="fas fa-phone"></i> {{ cita.paciente.telefono }}</small>
                     {% else %}
                         <span style="color: var(--text-muted); font-style: italic; font-weight: 500;">Sin paciente (Hueco libre)</span>

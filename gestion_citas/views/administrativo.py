@@ -27,7 +27,7 @@ def perfil_administrativo(request):
     else:
         citas = citas.filter(fecha__gte=date.today())
 
-    medicos = Medico.objects.all().select_related('user')
+    medicos = Medico.objects.all().select_related('user').order_by('user__last_name', 'user__first_name')
     propuestas_activas = PropuestaReasignacion.objects.filter(
         estado=EstadoPropuesta.PENDIENTE,
         fecha_limite__gt=timezone.now()
